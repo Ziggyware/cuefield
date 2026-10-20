@@ -1,0 +1,57 @@
+.cheer {
+  position: absolute;
+  top: calc(100% + 36px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--fg);
+  color: var(--on-fg);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 3px 10px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: rise 2.6s ease-out forwards;
+}
+@keyframes rise {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 -24px;
+  }
+}
+.banner {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .6rem .75rem;
+  border: 1px solid var(--fg);
+  background: var(--raise);
+  flex-wrap: wrap;
+}
+.banner > span {
+  flex: 1;
+  min-width: 10rem;
+}
+.banner button {
+  min-height: 2.5rem;
+}
+.who {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto auto;
+  gap: .6rem;
+  align-items: center;
+  padding: .45rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.who > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.who button {
+  min-height: 2.4rem;
+  padding: .3rem .7rem;
+}
