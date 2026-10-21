@@ -1,4 +1,5 @@
 import { R } from "../../shared/physics/constants.ts";
+import type { Pocket } from "../../shared/physics/types.ts";
 import { paletteHex } from "../prefs/look.ts";
 import type { View } from "../view.ts";
 
@@ -132,4 +133,48 @@ export function ghostBalls(g: G, v: View, pts: [number, number][], color: string
     g.textAlign = "start";
     g.textBaseline = "alphabetic";
   }
+}
+
+/** Rail chalk marks fade over this long, ms. */
+export const RAIL_FADE = 7000;
+
+/** Chalk scuffs on the cushion noses where balls struck wood, like a well-used club table. */
+export function railMarks(g: G, v: View, marks: { x: number; y: number; j: number; t: number }[], now: number): void {
+  for (const m of marks) {
+    const age = now - m.t;
+    if (age > RAIL_FADE) continue;
+    const k = 1 - age / RAIL_FADE;
+    const [x, y] = v.toScreen(m.x, m.y);
+    const r = (1.8 + Math.min(1.6, m.j) * 2.4) * (0.65 + 0.35 * k);
+    g.globalAlpha = 0.3 * k * Math.min(1, 0.3 + m.j);
+    g.fillStyle = "#bcd9ff";
+    g.beginPath();
+    g.ellipse(x, y, r * 1.4, r * 0.75, 0, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.globalAlpha = 1;
+}
+
+/** Pocket ledger: drops (accent) vs rattles (red) tallied at each mouth this rack. */
+export function heatLedger(g: G, v: View, pockets: Pocket[], heat: { pots: number[]; jaws: number[] }, accent: string): void {
+  g.font = `600 9px "IBM Plex Mono", ui-monospace, monospace`;
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  pockets.forEach((p, i) => {
+    const pots = heat.pots[i] ?? 0, jaws = heat.jaws[i] ?? 0;
+    if (!pots && !jaws) return;
+    const off = p.mouthHalf + 0.04;
+    const [x, y] = v.toScreen(p.x + p.dx * off, p.y + p.dy * off);
+    g.globalAlpha = 0.75;
+    g.fillStyle = accent;
+    g.fillText(String(pots), x - 7, y);
+    g.fillStyle = "#ff8a7a";
+    g.fillText(String(jaws), x + 7, y);
+    g.globalAlpha = 0.4;
+    g.fillStyle = "#ffffff";
+    g.fillText("·", x, y);
+  });
+  g.globalAlpha = 1;
+  g.textAlign = "start";
+  g.textBaseline = "alphabetic";
 }

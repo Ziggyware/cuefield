@@ -7,6 +7,7 @@ import { api, ApiError, type Profile } from "../api.ts";
 import type { Level } from "../bot/plan.ts";
 import { coins, h, modal, toast } from "../dom.ts";
 import { emoteText } from "../../shared/social.ts";
+import { prefs } from "../prefs/store.ts";
 import { stakeText } from "../ui/hud.ts";
 import { mountTable } from "./table-screen.ts";
 
@@ -39,6 +40,31 @@ export async function playBot(ui: HTMLElement, me: Profile, mode: Mode, table: s
   const cues: [CueSpec, CueSpec] = [srv?.cue ?? effectiveCue(cueById(me.cue), me.upgrades), cueById(BOT_CUES[level])];
   const worker = new Worker(new URL("../bot/worker.ts", import.meta.url), { type: "module" });
   let req = 0, closed = false;
+
+  /** Table talk: the house opponent reacts to the run of play, sparingly, from the rail's own vocabulary. */
+  let lastTalk = 0;
+  const talk = (text: string, chance: number) => {
+    if (!prefs.tableTalk || closed) return;
+    const now = Date.now();
+    if (now - lastTalk < 9000 || Math.random() > chance) return;
+    lastTalk = now;
+    screen.hud.bubble(1, text);
+  };
+  const banter = (st: GameState) => {
+    const r = st.last;
+    if (!r || st.winner >= 0) return;
+    const pots = r.pocketed.filter((id) => id > 0 && !r.respot.includes(id)).length;
+    if (r.by === 0) {
+      if (pots >= 2) talk("wow", 0.8);
+      else if (pots === 1 && (st.stats?.[0].run ?? 0) >= 4) talk("run out", 0.7);
+      else if (pots === 1) talk("nice shot", 0.35);
+      else if (r.foul) talk("rack 'em", 0.55);
+      else if (screen.session.shotJaws > 0) talk("that rattled", 0.5);
+      else talk("safety battle", 0.3);
+    } else if (r.foul) talk("oops", 0.5);
+    else if (pots >= 2) talk("on the hill", 0.7);
+    else if (r.keep) talk("good leave", 0.4);
+  };
 
   const botTurn = (st: GameState) => {
     if (closed || st.winner >= 0 || st.turn !== 1) return;
@@ -94,7 +120,10 @@ export async function playBot(ui: HTMLElement, me: Profile, mode: Mode, table: s
     {
       isLocal: (s) => s === 0,
       shoot: () => {},
-      settled: (st) => (st.winner >= 0 ? end(st) : botTurn(st)),
+      settled: (st) => {
+        banter(st);
+        return st.winner >= 0 ? end(st) : botTurn(st);
+      },
     },
     {
       emote: (k) => screen.hud.bubble(0, emoteText(k) ?? ""),
@@ -114,4 +143,5 @@ export async function playBot(ui: HTMLElement, me: Profile, mode: Mode, table: s
     screen.destroy();
   }
   botTurn(screen.session.state);
+  setTimeout(() => talk("rack 'em", 0.85), 2600);
 }

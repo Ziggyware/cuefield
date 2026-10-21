@@ -1,5 +1,6 @@
 import { tableById } from "../../shared/catalog.ts";
 import { api, type GlobalStats, type PlayerStats, type Profile } from "../api.ts";
+import { BADGES, badgesWon, lifetimePots } from "../badges.ts";
 import { h } from "../dom.ts";
 import { globalPanel, myStrip, resultRow } from "./stats.ts";
 
@@ -9,6 +10,24 @@ interface Rank {
   rating: number;
   wins: number;
   losses: number;
+}
+
+/** Local badge case: obscure pool-hall achievements earned on this device. */
+function badgeCase(): HTMLElement {
+  const won = badgesWon();
+  return h(
+    "div",
+    { class: "badge-grid" },
+    ...BADGES.map((b) =>
+      h(
+        "div",
+        { class: `badge${won.has(b.id) ? " won" : ""}` },
+        h("b", { text: `${won.has(b.id) ? "✦ " : ""}${b.name}` }),
+        h("span", { class: "k", text: b.note }),
+      ),
+    ),
+    h("span", { class: "k", style: "grid-column:1/-1;font-size:.75rem", text: `${won.size}/${BADGES.length} earned · ${lifetimePots()} lifetime pots recorded here` }),
+  );
 }
 
 /** Rank tab: your record, site-wide activity, your venues and results, and the ladder. */
@@ -49,6 +68,8 @@ export function boards(p: Profile): HTMLElement[] {
   return [
     h("span", { class: "h", text: "YOU" }),
     myStrip(p),
+    h("span", { class: "h", text: "RAILBIRD BADGES" }),
+    badgeCase(),
     h("span", { class: "h", text: "BY VENUE" }),
     venues,
     h("span", { class: "h", text: "YOUR RESULTS" }),

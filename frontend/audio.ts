@@ -86,6 +86,13 @@ export class Audio {
     this.tone(2093, 0.08, 0.05);
   }
 
+  /** Nerves: a low lub-dub whose force grows as the shot clock runs out. */
+  heartbeat(pressure: number): void {
+    const gain = 0.09 + 0.16 * Math.max(0, Math.min(1, pressure));
+    this.tone(52, gain, 0.13);
+    this.tone(66, gain * 0.65, 0.1, 0.17);
+  }
+
   strike(power: number): void {
     this.burst(1400, 2, 0.15 + 0.5 * power, 0.03);
   }

@@ -1,4 +1,5 @@
 import type { GameState } from "../../shared/game/types.ts";
+import { nickname } from "../../shared/lore.ts";
 import { h } from "../dom.ts";
 import { paletteHex } from "../prefs/look.ts";
 import { size } from "../screen.ts";
@@ -56,7 +57,7 @@ export class Gutter {
     const c = paletteHex(), bg = id > 8 ? `linear-gradient(${c[0]} 0 30%,${c[id]} 30% 70%,${c[0]} 70%)` : id === 0 ? "#f4f1e4" : c[id];
     return h(
       "i",
-      { class: "g-ball", style: `background:${bg}` },
+      { class: "g-ball", style: `background:${bg}`, title: `${id} · ${nickname(id)}` },
       h("b", { class: "g-num", text: id === 0 ? "" : String(id) }),
     );
   }

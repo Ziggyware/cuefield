@@ -18,6 +18,12 @@ export const DEFAULTS = {
   previewStyle: "line" as "line" | "dots" | "chevron" | "ball",
   heavySkill: true,
   trails: true,
+  railMarks: true,
+  bulletTime: true,
+  pocketHeat: true,
+  whispers: true,
+  nerves: true,
+  tableTalk: true,
   ballPalette: "vivid" as "vivid" | "classic" | "neon" | "colorblind",
   clothCustom: false,
   clothHex: "#0b8f5c",
@@ -37,6 +43,7 @@ export const DEFAULTS = {
   sandbox: false,
   lastMode: 8 as 8 | 9 | 10 | 15,
   lastVenue: "garage",
+  practiceSetup: "free",
   ringColor: "white",
 };
 

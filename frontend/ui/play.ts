@@ -3,6 +3,7 @@ import { type AssistLevel, botPot, type Mode, MODE_NAME, MODES, onlinePot, table
 import { api, type GlobalStats, type Profile } from "../api.ts";
 import type { Level } from "../bot/plan.ts";
 import { coins, h, toast } from "../dom.ts";
+import { type PracticeSetup, SETUP_CHOICES } from "../game/freeplay.ts";
 import { prefs, setPref } from "../prefs/store.ts";
 import { pref, quick } from "./matchmaking.ts";
 import { choose, GUIDES, hostModal, roomModal } from "./host.ts";
@@ -12,7 +13,9 @@ import { ASSIST_NAME, ASSIST_SHORT, rulesList } from "./rules-text.ts";
 export interface LobbyActions {
   match(id: string): void;
   practice(mode: Mode, table: string, level: Level): void;
-  solo(mode: Mode, table: string, assist: AssistLevel): void;
+  solo(mode: Mode, table: string, assist: AssistLevel, setup: PracticeSetup): void;
+  /** Pass-&-play on this device. */
+  hotseat(mode: Mode, table: string, names: [string, string]): void;
   watch(id: string): void;
   replay(id: string): void;
   daily(): void;
@@ -93,12 +96,44 @@ export function play(p: Profile, act: LobbyActions): { main: HTMLElement[]; dock
       ),
       btn("PRACTICE", `free · prediction ${prefs.practiceGuide}`, false, () => {
         const [guide, pick] = choose(GUIDES, prefs.practiceGuide as AssistLevel);
-        hostModal("practice", [h("span", { class: "h", text: "PREDICTION" }), guide], "start", () => {
-          setPref("practiceGuide", pick());
-          act.solo(pref.mode, pref.table, pick());
-        });
+        const cur = SETUP_CHOICES.some(([s]) => s === prefs.practiceSetup) ? (prefs.practiceSetup as PracticeSetup) : "free";
+        const [setupSel, pickSetup] = choose(SETUP_CHOICES, cur);
+        hostModal(
+          "practice",
+          [
+            h("span", { class: "h", text: "PREDICTION" }),
+            guide,
+            h("span", { class: "h", text: "SETUP · drills & trick racks" }),
+            setupSel,
+            h("span", { class: "k", style: "font-size:.8rem", text: "around the world keeps a local personal best; trick racks repeat the same layout until you land it." }),
+          ],
+          "start",
+          () => {
+            setPref("practiceGuide", pick());
+            setPref("practiceSetup", pickSetup());
+            act.solo(pref.mode, pref.table, pick(), pickSetup());
+          },
+        );
       }),
       btn("PRIVATE ROOM", "host or join · set prediction", false, () => (short ? need() : roomModal(act, spec.assist))),
+      (() => {
+        const b = btn("HOT SEAT · PASS & PLAY", "two players, one device · the table hides at every hand-over", false, () => {
+          const n0 = h("input", { placeholder: "player one", maxlength: 20, value: p.name }) as HTMLInputElement;
+          const n1 = h("input", { placeholder: "player two", maxlength: 20 }) as HTMLInputElement;
+          hostModal(
+            "hot seat",
+            [
+              h("span", { class: "k", text: `${MODE_NAME[pref.mode]} at ${spec.name}. No coins, no server — just the rack and a curtain at every pass.` }),
+              n0,
+              n1,
+            ],
+            "break 'em",
+            () => act.hotseat(pref.mode, pref.table, [n0.value.trim() || "player one", n1.value.trim() || "player two"]),
+          );
+        });
+        b.classList.add("wide");
+        return b;
+      })(),
     ),
   );
   return { main: [h("span", { class: "h", text: "VENUES" }), ...venues, live, rewardsPanel(p)], dock };

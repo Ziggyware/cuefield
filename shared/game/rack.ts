@@ -89,3 +89,64 @@ export function respot(balls: Ball[], b: Ball, L: number): void {
   b.wy = 0;
   b.wz = 0;
 }
+
+/**
+ * Trick racks: creative practice setups, client-only. Deterministic per (shape, seed) so a failed trick can be
+ * retried on exactly the same layout. Subset shapes never include the 8, so eight-ball cannot end by accident.
+ */
+export type RackShape = "wall" | "wedge" | "snake" | "ring" | "duo" | "solo";
+
+export const RACK_SHAPES: { id: RackShape; name: string; note: string }[] = [
+  { id: "wall", name: "the wall", note: "every ball in one frozen line across the foot — break it or bank over it" },
+  { id: "wedge", name: "the wedge", note: "a V pointing away from you; the apex ball is the only clean first contact" },
+  { id: "snake", name: "the snake", note: "a sine of balls down the table — thread the cue between the coils" },
+  { id: "ring", name: "ouroboros", note: "a perfect ring with an empty heart; drop a ball through the eye" },
+  { id: "duo", name: "frozen duo", note: "two balls frozen together against the rail — the classic duo bank" },
+  { id: "solo", name: "lone wolf", note: "one ball, one pocket, long table — bank, massé or stun it home" },
+];
+
+export function shapeRack(mode: Mode, L: number, W: number, shape: RackShape, seed: number): Ball[] {
+  const r = rng((seed ^ 0x5eed) >>> 0);
+  const d = 2 * R + 2e-5;
+  const full = mode === 9 ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : mode === 10 ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+  const ids = shape === "duo" ? [1, 9] : shape === "solo" ? [1] : full;
+  const n = ids.length;
+  const j = () => (r() - 0.5) * 2e-5;
+  const pts: [number, number][] = [];
+  const hw = W / 2 - R - 1e-4;
+
+  if (shape === "wall") {
+    for (let i = 0; i < n; i++) pts.push([L / 4, (i - (n - 1) / 2) * d]);
+  } else if (shape === "wedge") {
+    // Apex nearest the cue ball, arms opening toward the foot rail. At ±32° the mirrored arms stay a full
+    // ball-width apart at every index, so nothing overlaps.
+    const a = (32 * Math.PI) / 180, per = Math.ceil((n - 1) / 2);
+    pts.push([L / 4, 0]);
+    for (let arm = -1; arm <= 1; arm += 2) {
+      const count = arm < 0 ? per : n - 1 - per;
+      for (let i = 1; i <= count; i++) pts.push([L / 4 + i * d * Math.cos(a), arm * i * d * Math.sin(a)]);
+    }
+  } else if (shape === "snake") {
+    for (let i = 0; i < n; i++) {
+      const x = ((i / (n - 1)) * 2 - 1) * 0.34 * L;
+      pts.push([x, Math.sin(i * 1.15) * Math.min(hw - d, 0.28 * W)]);
+    }
+  } else if (shape === "ring") {
+    const rad = d / (2 * Math.sin(Math.PI / n)) + 1e-5;
+    for (let i = 0; i < n; i++) pts.push([L / 4 + Math.cos((2 * Math.PI * i) / n) * rad, Math.sin((2 * Math.PI * i) / n) * rad]);
+  } else if (shape === "duo") {
+    pts.push([L / 4, hw], [L / 4, hw - d]);
+  } else {
+    pts.push([L / 4 + (r() - 0.5) * 0.2 * L, (r() - 0.5) * 2 * (hw - d)]);
+  }
+
+  // Keep every ball on the cloth.
+  const balls: Ball[] = [ball(0, -L / 4, shape === "solo" ? 0.16 * W : 0)];
+  pts.forEach(([x, y], i) => {
+    const cx = Math.max(-L / 2 + R + 1e-4, Math.min(L / 2 - R - 1e-4, x));
+    const cy = Math.max(-hw, Math.min(hw, y));
+    balls.push(ball(ids[i], cx + j(), cy + j()));
+  });
+  balls.sort((a, b) => a.id - b.id);
+  return balls;
+}

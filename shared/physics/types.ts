@@ -72,6 +72,7 @@ export interface Geometry {
 
 export type SimEvent =
   | { k: "ball"; t: number; a: number; b: number; j: number }
-  | { k: "rail"; t: number; a: number; j: number }
+  /** Cushion or jaw-post contact. x, y is the contact point on the nose: presentation only, never rules. */
+  | { k: "rail"; t: number; a: number; j: number; x: number; y: number }
   | { k: "jaw"; t: number; a: number; p: number; j: number; x: number; y: number }
   | { k: "pocket"; t: number; a: number; p: number };

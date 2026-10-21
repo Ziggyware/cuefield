@@ -26,8 +26,9 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 /**
- * Stroke controls. Power and the fine-aim "intensity" strip sit beside the cloth (right and left respectively, mirrored
- * for left-handed play); the chalk selections dock right of the player name and spin/massé dock left of the opponent's.
+ * Stroke controls. The power band owns every pixel from the left screen edge to the left edge of the table, and the
+ * precision band from the right edge of the table to the right screen edge (mirrored for left-handed play); press
+ * anywhere inside a band to drive it. The chalk selections dock in the HUD centre and spin/massé beside them.
  */
 export class Controls {
   root: HTMLElement;
@@ -42,6 +43,10 @@ export class Controls {
   cueDock = h("div", { class: "cue-set" });
   readSpin = h("span", { class: "cue-val" });
   readElev = h("span", { class: "cue-val" });
+
+  /** The two full-height input bands; the whole band is the hit area. */
+  powerDock = h("div", { class: "ctl dock power-dock" }, h("span", { class: "zone-cap", text: "POWER" }), this.power);
+  fineDock = h("div", { class: "ctl dock fine-dock" }, h("span", { class: "zone-cap", text: "PRECISION" }), this.fine);
 
   pull = 0;
   /** Bar fraction where the current drag started, and which way the fill grows. */
@@ -66,28 +71,24 @@ export class Controls {
     this.ev = ev;
     this.cue = cue;
 
-    const pad = (el: HTMLElement) => h("div", { class: "hit" }, el);
     const slim = (el: HTMLElement) => h("div", { class: "hit slim" }, el);
-    const powerHit = pad(this.power), fineHit = pad(this.fine), spinHit = slim(this.spin), elevHit = slim(this.elev);
+    const spinHit = slim(this.spin), elevHit = slim(this.elev);
+    const powerDock = this.powerDock, fineDock = this.fineDock;
 
-    // Power beside the far cushion, inset by roughly its own width; the intensity strip on the near side, inset by
-    // half of its width. Left-handed play mirrors both.
-    const powerDock = h("div", { class: "ctl dock power-dock" }, powerHit);
-    const fineDock = h("div", { class: "ctl dock fine-dock" }, fineHit);
-    const place = () => {
-      const ps = prefs.leftHanded ? "left" : "right", fs = prefs.leftHanded ? "right" : "left";
-      for (const [el, side] of [[powerDock, ps], [fineDock, fs]] as [HTMLElement, string][]) {
-        el.style.left = el.style.right = "";
-        el.style.setProperty(side, `calc(${side === ps ? 72 : 46}px + env(safe-area-inset-${side}))`);
-        el.style.top = "50%";
-        el.style.transform = "translateY(-50%)";
-      }
-    };
+    // Bands are placed from the live table edges (--tl/--tr, virtual px) by `zones`; the left-handed preference
+    // swaps which band owns which side of the table.
+    this.root = h(
+      "div",
+      { style: "position:absolute;inset:0;pointer-events:none" },
+      powerDock,
+      fineDock,
+      this.gameHost = h("div", { class: "mg-host" }),
+      this.armed = h("div", { class: "armed" }),
+    );
+    this.root.style.opacity = "0.35";
+    const place = () => this.root.classList.toggle("mirror", prefs.leftHanded);
     place();
     onPref((k) => k === "leftHanded" && place());
-
-    this.armed = h("div", { class: "armed" });
-    this.gameHost = h("div", { class: "mg-host" });
     this.chalkDock.append(
       h("span", { class: "dock-cap", text: "CHALK" }),
       this.tipBtn,
@@ -100,25 +101,16 @@ export class Controls {
     this.readSpin.title = `tip limit ${(this.cue.spin * 100).toFixed(0)}% of the ball radius`;
     this.readElev.title = "cue elevation limit";
 
-    this.root = h(
-      "div",
-      { style: "position:absolute;inset:0;pointer-events:none" },
-      powerDock,
-      fineDock,
-      this.gameHost,
-      this.armed,
-    );
-    this.root.style.opacity = "0.35";
-
     this.tipBtn.onclick = () => this.enabled && this.startTipGame();
     this.handBtn.onclick = () => this.enabled && this.startHandGame();
 
     let originY = 0, top = 0, bottom = 1;
-    drag(powerHit, (e, ph) => {
+    drag(powerDock, (e, ph) => {
       if (!this.enabled) return;
       const y = toVirt(e.clientX, e.clientY)[1];
       if (ph === "down") {
-        const { cy, h: bh } = getCenterAndSize(this.power);
+        // The whole band is the bar: a press anywhere between screen edge and table edge anchors the pull.
+        const { cy, h: bh } = getCenterAndSize(powerDock);
         top = cy - bh / 2;
         bottom = cy + bh / 2;
         originY = clamp(y, top + 1, bottom - 1);
@@ -147,11 +139,11 @@ export class Controls {
     });
 
     let last = 0, finePos = 50;
-    drag(fineHit, (e, ph) => {
+    drag(fineDock, (e, ph) => {
       if (!this.enabled) return;
       const y = toVirt(e.clientX, e.clientY)[1];
       if (ph === "down") {
-        const { cy, h: bh } = getCenterAndSize(this.fine);
+        const { cy, h: bh } = getCenterAndSize(fineDock);
         finePos = clamp(((y - (cy - bh / 2)) / bh) * 100, 4, 96);
       } else if (ph === "move") {
         // Half the old angular rate: twice the precision per pixel for fine aim.
@@ -215,6 +207,12 @@ export class Controls {
   attach(chalk: HTMLElement, cue: HTMLElement): void {
     chalk.append(this.chalkDock);
     cue.append(this.cueDock);
+  }
+
+  /** Live table edges in virtual px; each band spans from its table edge out to the screen edge. */
+  zones(tl: number, tr: number): void {
+    this.root.style.setProperty("--tl", `${Math.round(tl)}px`);
+    this.root.style.setProperty("--tr", `${Math.round(tr)}px`);
   }
 
   cancelMinigame(): void {

@@ -33,6 +33,15 @@ export class Session {
   gutter = new Gutter();
   /** Recent jaw contacts, for the rejection flash. */
   jawHits: { x: number; y: number; t: number }[] = [];
+  /** Chalk scuffs left on the cushions this rack, where balls struck wood. */
+  railMarks: { x: number; y: number; j: number; t: number }[] = [];
+  /** Pocket ledger: drops vs rattles per pocket this rack. */
+  heat = { pots: [0, 0, 0, 0, 0, 0], jaws: [0, 0, 0, 0, 0, 0] };
+  /** Contacts during the shot in flight (or the last one): whispers and badges read these. */
+  shotRails = 0;
+  shotJaws = 0;
+  /** Smoothed bullet-time playback factor; 1 is real time. */
+  bullet = 1;
   place: [number, number] | null = null;
   call = -1;
   dirty = true;
@@ -43,7 +52,7 @@ export class Session {
   clockSpan = 30_000;
   running = true;
   /** Bottom edge of the HUD, virtual px. */
-  top = 72;
+  top = 48;
   /** Ball paths of the shot in progress or the last one. */
   trails: Map<number, [number, number][]> | null = null;
   /** Last stroke + its pre-state (instant replay). */
@@ -145,6 +154,8 @@ export class Session {
     this.replay = null;
     this.trails = new Map();
     this.jawHits = [];
+    this.shotRails = 0;
+    this.shotJaws = 0;
     this.log.push(cmd);
     this.sim = begin(this.state, cmd, this.cues[this.state.turn]);
     this.simCmd = cmd;
@@ -158,6 +169,11 @@ export class Session {
     this.replay = null;
     this.simCmd = null;
     this.jawHits = [];
+    // A fresh rack wipes the cloth: the cushions lose their scuffs and the pockets their ledger.
+    if (st.shot === 0 && !st.broken) {
+      this.railMarks = [];
+      this.heat = { pots: [0, 0, 0, 0, 0, 0], jaws: [0, 0, 0, 0, 0, 0] };
+    }
     this.state = st;
     this.gutter.sync(st);
     this.syncCue();

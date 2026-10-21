@@ -73,6 +73,10 @@
   text-align: left;
   font-weight: 600;
 }
+.acts button.wide {
+  grid-column: 1 / -1;
+  min-height: 3.2rem;
+}
 .acts small {
   font-size: .75rem;
   font-weight: 400;
@@ -214,13 +218,9 @@
   flex: none;
 }
 .hud button {
-  min-height: 34px;
-  padding: 4px 10px;
-  font-size: 12px;
-}
-.hud .pc {
-  padding: 5px 8px;
-  font-size: 12px;
+  min-height: 24px;
+  padding: 2px 7px;
+  font-size: 11px;
 }
 .mid {
   position: relative;
@@ -254,4 +254,32 @@
 }
 .net {
   font-size: 11px;
+}
+
+/* Railbird badge case (rank tab). */
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.badge {
+  border: 1px solid var(--line);
+  background: var(--raise);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: .45;
+}
+.badge.won {
+  opacity: 1;
+  border-color: var(--fg);
+  box-shadow: inset 3px 0 0 var(--fg);
+}
+.badge b {
+  font-size: .88rem;
+}
+.badge .k {
+  font-size: .74rem;
+  line-height: 1.35;
 }

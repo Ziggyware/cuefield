@@ -3,15 +3,16 @@ import { quality } from "../view.ts";
 import type { Session } from "./session.ts";
 
 /**
- * Space beside the cloth: the power bar sits on the right, inset by about its own width; the fine-aim "intensity"
- * strip on the left, inset by half of its width. The gutter takes the bottom strip. Left-handed play mirrors the bars.
+ * Space beside the cloth: the power band owns the strip from the left screen edge to the left table edge, and the
+ * precision band the strip from the right table edge to the right screen edge. The gutter takes the bottom strip.
+ * Left-handed play mirrors the bands.
  */
 export const POWER_GUTTER = 160, FINE_GUTTER = 126, GUTTER_H = 44;
 export const insets = (top: number) => ({
   top,
   bottom: GUTTER_H,
-  left: prefs.leftHanded ? POWER_GUTTER : FINE_GUTTER,
-  right: prefs.leftHanded ? FINE_GUTTER : POWER_GUTTER,
+  left: prefs.leftHanded ? FINE_GUTTER : POWER_GUTTER,
+  right: prefs.leftHanded ? POWER_GUTTER : FINE_GUTTER,
 });
 
 let prefsVersion = 0;
