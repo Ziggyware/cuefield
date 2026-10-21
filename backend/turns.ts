@@ -26,7 +26,7 @@ async function commit(m: Match, state: GameState, entry: unknown, deadline: numb
     ],
   );
   if (!rows.length) return false;
-  if (done) await payout(m, state.winner as 0 | 1);
+  if (done) await payout({ ...m, state }, state.winner as 0 | 1);
   return true;
 }
 
@@ -50,15 +50,10 @@ export async function submit(m: Match, seat: 0 | 1, cmd: Cmd, shot: number): Pro
   
   const { state, sim } = play(st, cmd, cue);
   
-  if (state.last?.foul && m.stake > 0) {
-    const foulFine = 5;
-    await q(`UPDATE players SET coins = MAX(0, coins - ?) WHERE id = ?`, [foulFine, m.p[seat]]);
-  }
-  
   const deadline = Date.now() + Math.ceil(sim.t * 1000) + clockOf(m) + ANIM_GRACE_MS;
-  return (await commit(m, state, { by: seat, cmd }, deadline, "win"))
-    ? { ok: true, hash: hash(state), version: m.version + 1 }
-    : { error: "race", status: 409 };
+  if (!await commit(m, state, { by: seat, cmd }, deadline, "win")) return { error: "race", status: 409 };
+  if (state.last?.foul && m.stake > 0) await q(`UPDATE players SET coins = MAX(0, coins - 5) WHERE id = ?`, [m.p[seat]]);
+  return { ok: true, hash: hash(state), version: m.version + 1 };
 }
 
 async function abandon(m: Match): Promise<void> {
@@ -83,10 +78,10 @@ export async function tick(m: Match, now = Date.now()): Promise<Match> {
   }
   if (now > m.deadline) {
     const next = timeout(m.state);
-    if (m.stake > 0) {
+    const committed = await commit(m, next, { by: m.state.turn, cmd: { k: "timeout" } }, now + clockOf(m) + ANIM_GRACE_MS, "timeouts");
+    if (committed && m.stake > 0) {
       await q(`UPDATE players SET coins = MAX(0, coins - ?) WHERE id = ?`, [5, m.p[m.state.turn]]);
     }
-    await commit(m, next, { by: m.state.turn, cmd: { k: "timeout" } }, now + clockOf(m) + ANIM_GRACE_MS, "timeouts");
     return (await loadMatch(m.id)) ?? m;
   }
   return m;

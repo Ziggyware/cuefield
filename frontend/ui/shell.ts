@@ -47,7 +47,7 @@ export function shell(p: Profile, tab: Tab, act: ShellActions): HTMLElement {
     "header",
     { class: "top" },
     name,
-    h("span", { class: "k", text: `${p.rating}` }),
+    h("span", { class: "k", text: `LV ${p.progression?.level ?? 1} · ${p.rating} Elo` }),
     h("span", { style: "flex:1" }),
     h("b", { class: "v", text: coins(p.coins) }),
     daily,

@@ -24,6 +24,7 @@ export interface MatchView {
   /** Decisive finished games between the two players, per seat. */
   h2h: [number, number];
   watching: number;
+  bonuses?: import("../ui/rewards.ts").Award[];
   last: { by: 0 | 1; cmd: { k: string } & Partial<StrikeCmd> } | null;
 }
 

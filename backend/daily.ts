@@ -49,7 +49,7 @@ export async function finishDaily(p: Player, day: unknown, log: unknown) {
     const ins = await q(`INSERT OR IGNORE INTO daily_runs (day, player_id, score, created) VALUES (?,?,?,?) RETURNING day`, [day, p.id, run.score, Date.now()]);
     if (ins.length) {
       paid = DAILY.reward;
-      await q(`UPDATE players SET coins = coins + ?, earned = earned + ? WHERE id = ?`, [paid, paid, p.id]);
+      await q(`UPDATE players SET coins = coins + ?, earned = earned + ?, xp = xp + ? WHERE id = ?`, [paid, paid, paid, p.id]);
     }
   } else if (run.score < Number(prev.score)) {
     await q(`UPDATE daily_runs SET score = ?, created = ? WHERE day = ? AND player_id = ?`, [run.score, Date.now(), day, p.id]);

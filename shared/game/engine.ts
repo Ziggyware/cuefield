@@ -1,3 +1,4 @@
+import { recordShot } from "../rewards.ts";
 import { type CueSpec, type Mode, rulesOf, tableById } from "../catalog.ts";
 import { R } from "../physics/constants.ts";
 import { buildGeometry } from "../physics/geometry.ts";
@@ -102,6 +103,7 @@ function advanceTurn(st: GameState, balls: Ball[], rep: Report): GameState {
     turn: rep.win >= 0 || rep.keep ? p : o,
     bih: rep.win >= 0 ? 0 : rep.foul ? (st.mode === 8 && !st.broken && rep.foul === "scratch" ? 1 : 2) : 0,
     last: rep,
+    stats: recordShot(st.stats, rep),
   };
 }
 

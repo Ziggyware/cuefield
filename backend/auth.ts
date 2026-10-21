@@ -25,8 +25,8 @@ export async function createGuest(name: string): Promise<{ token: string; id: st
   const token = randomId(32);
   const freeCue = CUES.filter((c) => c.price === 0).map((c) => c.id);
   await q(
-    `INSERT INTO players (id, token_hash, name, coins, rating, cue, cues, tables, unlocks, created) VALUES (?,?,?,?,?,?,?,'[]',?,?)`,
-    [id, await sha256(token), name, START_COINS, START_RATING, freeCue[0], JSON.stringify(freeCue), JSON.stringify(["basic"]), Date.now()],
+    `INSERT INTO players (id, token_hash, name, coins, rating, cue, cues, tables, unlocks, created, xp) VALUES (?,?,?,?,?,?,?,'[]',?,?,?)`,
+    [id, await sha256(token), name, START_COINS, START_RATING, freeCue[0], JSON.stringify(freeCue), JSON.stringify(["basic"]), Date.now(), START_COINS],
   );
   return { token, id };
 }
@@ -47,6 +47,7 @@ export interface Player {
   solo_earned: number;
   unlocks: string[];
   earned: number;
+  xp: number;
   win_streak: number;
   best_streak: number;
   bot_wins: number;
@@ -72,6 +73,7 @@ export function toPlayer(r: Row): Player {
     solo_earned: Number(r.solo_earned ?? 0),
     unlocks: JSON.parse(String(r.unlocks ?? '["basic"]')),
     earned: Number(r.earned ?? 0),
+    xp: Number(r.xp ?? 0),
     win_streak: Number(r.win_streak ?? 0),
     best_streak: Number(r.best_streak ?? 0),
     bot_wins: Number(r.bot_wins ?? 0),

@@ -26,7 +26,7 @@ export class Session {
   simCmd: StrikeCmd | null = null;
   acc = 0;
   heard = 0;
-  aim: Aim = { angle: 0, power: 0, tx: 0, ty: 0, elev: 0 };
+  aim: Aim = { angle: 0, power: 0, tx: 0, ty: 0, elev: 0, tipChalk: 1, handChalk: 1 };
   controls: Controls;
   place: [number, number] | null = null;
   call = -1;

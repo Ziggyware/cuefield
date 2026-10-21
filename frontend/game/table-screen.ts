@@ -1,3 +1,4 @@
+import { narrate, narrationButton, roundText } from "../ui/rewards.ts";
 import type { AssistLevel, CueSpec } from "../../shared/catalog.ts";
 import type { GameState } from "../../shared/game/types.ts";
 import { Audio } from "../audio.ts";
@@ -55,7 +56,9 @@ export function mountTable(
     ...(ev.extra ?? []),
   ];
   const hud = new Hud(seats, stake, { ...ev, extra }, opts.unlocks ?? []);
-  const root = h("div", { style: "position:absolute;inset:0;pointer-events:none" }, hud.root, session.controls.root);
+  const recap = h("div", { class: "round-recap", role: "status", "aria-live": "polite", text: "Rack ready · Make your opening play" });
+  const commentary = h("div", { class: "commentary" }, recap, narrationButton());
+  const root = h("div", { style: "position:absolute;inset:0;pointer-events:none" }, hud.root, session.controls.root, commentary);
   ui.replaceChildren(root);
   const unbind = bindInput(session, document.getElementById("ov")!);
   let mine = false, lastTick = 0, lastAvail = 0, seenShot = session.state.shot, ended = session.state.winner >= 0;
@@ -65,6 +68,11 @@ export function mountTable(
     const st = session.state;
     if (st.shot !== seenShot) {
       seenShot = st.shot;
+      const summary = roundText(st, seats.map((s) => s.name));
+      recap.textContent = summary;
+      recap.getAnimations().forEach((a) => a.cancel());
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches) recap.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 240, easing: "ease-out" });
+      if (st.winner < 0) narrate(summary);
       const l = st.last;
       hud.run = l && !l.foul && l.keep && l.pocketed.length ? hud.run + 1 : 0;
     }
@@ -95,6 +103,7 @@ export function mountTable(
     destroy() {
       setWide(false);
       session.stop();
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
       requestAnimationFrame(() => g.renderer.clear());
       unbind();
       clearInterval(timer);

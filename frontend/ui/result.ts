@@ -1,3 +1,4 @@
+import { awardList, matchStats, narrate } from "./rewards.ts";
 import { api } from "../api.ts";
 import { linkTo, share } from "../links.ts";
 import { coins, h, modal } from "../dom.ts";
@@ -14,6 +15,7 @@ const REASON: Record<string, string> = {
 
 export function showResult(v: MatchView, seat: 0 | 1, lobby: () => void, next: (id: string) => void): void {
   const won = v.winner === seat, noResult = v.winner < 0;
+  narrate(noResult ? "Match ended without a result." : `${v.players[v.winner].name} wins. Here are your match highlights.`);
   const status = h("span", { class: "k" });
   let polling = 0;
   const again = h("button", {
@@ -53,6 +55,8 @@ export function showResult(v: MatchView, seat: 0 | 1, lobby: () => void, next: (
       // Net change: the winner's pot minus their own escrowed entry equals the loser's entry.
       h("span", { class: won ? "v" : "bad", text: !v.stake || noResult ? "" : won ? `+${coins(v.stake)}` : `−${coins(v.stake)}` }),
     ),
+    matchStats(v.state, v.players.map((p) => p.name)),
+    awardList(v.bonuses ?? []),
     status,
     h(
       "div",

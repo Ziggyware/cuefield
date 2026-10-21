@@ -233,3 +233,30 @@ table.list td:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Reward and match storytelling surfaces. */
+.rewards-panel { padding: 20px; margin: 18px 0; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(135deg, var(--raise), var(--bg)); display: grid; gap: 12px; }
+.rewards-panel h2 { font-size: 20px; letter-spacing: .06em; }
+.rewards-panel h3 { margin-top: 8px; }
+.rewards-panel progress { width: 100%; height: 8px; accent-color: var(--fg); border-radius: 8px; }
+.bounty-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 10px; }
+.bounty { display: flex; flex-direction: column; gap: 7px; border: 1px solid var(--line); border-radius: 10px; padding: 14px; background: var(--raise); }
+.bounty.claimed { border-color: var(--fg); }
+.match-stats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin: 16px 0; }
+.player-recap { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--raise); }
+.player-recap h3 { overflow-wrap: anywhere; margin: 6px 0 12px; }
+.recap-numbers { margin-bottom: 6px; }
+.brag { display: block; color: var(--fg); font-size: .85em; padding-top: 8px; }
+.award-list { display: grid; gap: 8px; }
+.reward-line { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding: 8px 0; font-size: .85em; }
+.commentary { position: absolute; bottom: 8px; left: 16px; right: 16px; display: flex; gap: 10px; align-items: center; pointer-events: none; }
+.round-recap { max-width: 700px; font-size: 12px; line-height: 1.4; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.narration-toggle { margin-left: auto; pointer-events: auto; font-size: 11px; white-space: nowrap; }
+.modal > div { max-height: 88vh; overflow-y: auto; overscroll-behavior: contain; }
+@keyframes surface-enter { from { opacity: 0; transform: translateY(10px) scale(.99); } to { opacity: 1; transform: none; } }
+@keyframes veil-enter { from { opacity: 0; } to { opacity: 1; } }
+.app, .modal > div { animation: surface-enter 260ms cubic-bezier(.2,.8,.2,1) both; }
+.modal { animation: veil-enter 180ms ease-out both; }
+@media (prefers-reduced-motion: reduce) { .app, .modal, .modal > div { animation: none; } }
+.modal > div:has(.match-stats) { width: min(48rem,100%); border-radius: 14px; }
+@media (max-width: 480px) { .match-stats { gap: 6px; } .player-recap { padding: 10px; font-size: .85em; } .reward-line { flex-wrap: wrap; gap: 4px; } }

@@ -1,3 +1,4 @@
+import { rewardStatus } from "./rewards.ts";
 import { Hono } from "npm:hono@4";
 import type { Mode } from "../shared/catalog.ts";
 import { body, fail } from "./http.ts";
@@ -45,6 +46,8 @@ api.use("/me", requireAuth);
 api.use("/mm/*", requireAuth);
 api.use("/room/*", requireAuth);
 api.use("/match/*", requireAuth);
+
+api.get("/me/rewards", async (c) => c.json(await rewardStatus(c.get("player").id)));
 
 api.get("/me", (c) => c.json(view(c.get("player"))));
 api.post("/me/name", async (c) => {

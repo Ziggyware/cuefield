@@ -108,6 +108,7 @@ export function migrate(): Promise<void> {
       ["players", "solo_day INTEGER NOT NULL DEFAULT 0"],
       ["players", "solo_earned INTEGER NOT NULL DEFAULT 0"],
       ["players", "unlocks TEXT NOT NULL DEFAULT '[\"basic\"]'"],
+      ["players", "xp INTEGER NOT NULL DEFAULT -1"],
       ["players", "earned INTEGER NOT NULL DEFAULT 0"],
       ["players", "win_streak INTEGER NOT NULL DEFAULT 0"],
       ["players", "best_streak INTEGER NOT NULL DEFAULT 0"],
@@ -134,6 +135,15 @@ export function migrate(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS solo_ended ON solo(done, ended)`,
       `CREATE UNIQUE INDEX IF NOT EXISTS players_vt ON players(vt_id)`,
       ...MP_INDEXES,
+      `UPDATE players SET coins = MAX(0, coins) WHERE coins < 0`,
+      `UPDATE players SET xp = MAX(0, coins) WHERE xp < 0`,
+      `CREATE TABLE IF NOT EXISTS reward_matches (seq INTEGER PRIMARY KEY AUTOINCREMENT, player_id TEXT NOT NULL, match_id TEXT NOT NULL, day INTEGER NOT NULL, won INTEGER NOT NULL, pots INTEGER NOT NULL, stats TEXT NOT NULL, UNIQUE(player_id, match_id))`,
+      `CREATE INDEX IF NOT EXISTS reward_matches_player ON reward_matches(player_id, seq DESC)`,
+      `CREATE INDEX IF NOT EXISTS reward_matches_day ON reward_matches(player_id, day)`,
+      `CREATE TABLE IF NOT EXISTS reward_awards (player_id TEXT NOT NULL, reward_key TEXT NOT NULL, match_id TEXT NOT NULL, title TEXT NOT NULL, amount INTEGER NOT NULL CHECK(amount > 0), PRIMARY KEY(player_id, reward_key))`,
+      `CREATE TRIGGER IF NOT EXISTS reward_credit AFTER INSERT ON reward_awards BEGIN UPDATE players SET coins = coins + NEW.amount, xp = xp + NEW.amount, earned = earned + NEW.amount WHERE id = NEW.player_id; END`,
+      `CREATE TRIGGER IF NOT EXISTS coins_floor_update BEFORE UPDATE OF coins ON players WHEN NEW.coins < 0 BEGIN SELECT RAISE(ABORT, 'negative-coins'); END`,
+      `CREATE TRIGGER IF NOT EXISTS coins_floor_insert BEFORE INSERT ON players WHEN NEW.coins < 0 BEGIN SELECT RAISE(ABORT, 'negative-coins'); END`,
     ]);
   })().catch((e) => {
     ready = null;

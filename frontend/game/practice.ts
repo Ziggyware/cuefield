@@ -1,3 +1,4 @@
+import { awardList, matchStats, narrate, type Award } from "../ui/rewards.ts";
 import { BOT_CUES, botPot, cueById, type CueSpec, type Mode, tableById } from "../../shared/catalog.ts";
 import { newGame } from "../../shared/game/engine.ts";
 import type { GameState, StrikeCmd } from "../../shared/game/types.ts";
@@ -58,10 +59,14 @@ export async function playBot(ui: HTMLElement, me: Profile, mode: Mode, table: s
 
   const end = async (st: GameState) => {
     const won = st.winner === 0;
+    narrate(`${won ? me.name : BOT_NAME[level]} wins the rack. Match highlights are ready.`);
+    const awards = h("div");
     const note = h("span", { class: "k", text: srv ? "verifying" : "offline · no reward" });
     const m = modal(
       h("div", { class: "big", text: won ? "won" : "lost" }),
       note,
+      matchStats(st, [me.name, BOT_NAME[level]]),
+      awards,
       h(
         "div",
         { class: "row" },
@@ -71,8 +76,9 @@ export async function playBot(ui: HTMLElement, me: Profile, mode: Mode, table: s
     );
     if (!srv) return;
     try {
-      const r = await api<{ won: boolean; reward: number; capped?: boolean }>("/me/solo/finish", { id: srv.id, log: screen.session.log });
+      const r = await api<{ won: boolean; reward: number; bonuses: Award[]; capped?: boolean }>("/me/solo/finish", { id: srv.id, log: screen.session.log });
       note.textContent = r.won ? `+${coins(r.reward)}${r.capped ? " · daily house limit reached" : ""}` : spec.fee ? `−${coins(spec.fee)}` : "no entry fee";
+      awards.replaceChildren(awardList(r.bonuses));
       note.className = r.won ? "v" : "bad";
     } catch {
       note.textContent = "not verified";

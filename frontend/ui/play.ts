@@ -1,3 +1,4 @@
+import { rewardsPanel } from "./rewards.ts";
 import { type AssistLevel, botPot, type Mode, MODE_NAME, MODES, onlinePot, tableById, TABLES } from "../../shared/catalog.ts";
 import { api, type GlobalStats, type Profile } from "../api.ts";
 import type { Level } from "../bot/plan.ts";
@@ -100,5 +101,5 @@ export function play(p: Profile, act: LobbyActions): { main: HTMLElement[]; dock
       btn("PRIVATE ROOM", "host or join · set prediction", false, () => (short ? need() : roomModal(act, spec.assist))),
     ),
   );
-  return { main: [h("span", { class: "h", text: "VENUES" }), ...venues, live], dock };
+  return { main: [h("span", { class: "h", text: "VENUES" }), ...venues, live, rewardsPanel(p)], dock };
 }

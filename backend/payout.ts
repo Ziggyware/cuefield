@@ -1,3 +1,4 @@
+import { settleRewards } from "./rewards.ts";
 import { ELO_K, onlinePot, tableById } from "../shared/catalog.ts";
 import { q } from "./db.ts";
 import type { Match } from "./match.ts";
@@ -11,9 +12,11 @@ export async function payout(m: Match, w: 0 | 1): Promise<void> {
   const ra = Number(rs.find((r) => r.id === winner)?.rating), rb = Number(rs.find((r) => r.id === loser)?.rating);
   const d = m.ranked ? ELO_K * (1 - 1 / (1 + Math.pow(10, (rb - ra) / 400))) : 0;
   await q(
-    `UPDATE players SET coins = coins + ?, earned = earned + ?, wins = wins + 1, rating = rating + ?,
+    `UPDATE players SET coins = coins + ?, xp = xp + ?, earned = earned + ?, wins = wins + 1, rating = rating + ?,
      win_streak = win_streak + 1, best_streak = MAX(best_streak, win_streak + 1) WHERE id = ?`,
-    [pot, pot - m.stake, d, winner],
+    [pot, pot, pot - m.stake, d, winner],
   );
   await q(`UPDATE players SET losses = losses + 1, rating = rating - ?, earned = earned - ?, win_streak = 0 WHERE id = ?`, [d, m.stake, loser]);
+  await settleRewards(winner, `online:${m.id}`, true, m.state.stats?.[w]);
+  await settleRewards(loser, `online:${m.id}`, false, m.state.stats?.[1 - w]);
 }
