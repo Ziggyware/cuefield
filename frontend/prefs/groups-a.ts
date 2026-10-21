@@ -63,6 +63,18 @@ export const GROUPS_A: Group[] = [
         c: { kind: "select", options: [["off", "off"], ["button", "on demand"], ["auto", "after every shot"]] },
       },
       { k: "trails", label: "motion trails", note: "Paths of every ball from the last shot.", c: T },
+      { k: "bulletTime", label: "bullet time", note: "The table holds its breath: playback slows while a ball is at the lip of a drop.", c: T },
+    ],
+  },
+  {
+    title: "TABLE FEEL",
+    note: "Small intrinsic touches: the cloth remembers, the pockets keep score, and the table talks back.",
+    defs: [
+      { k: "railMarks", label: "rail chalk marks", note: "Fading scuffs on the cushions where balls struck wood, like a well-used club table.", c: T },
+      { k: "pocketHeat", label: "pocket ledger", note: "Drops vs rattles tallied at each pocket this rack — the table's own memory.", c: T },
+      { k: "whispers", label: "cloth whispers", note: "One line of real physics or table lore after every settled shot.", c: T },
+      { k: "nerves", label: "nerves", note: "Heartbeat vignette and pulse when the shot clock runs down on you.", c: T },
+      { k: "tableTalk", label: "table talk", note: "The bot opponent reacts to the run of play with emotes.", c: T },
     ],
   },
 ];

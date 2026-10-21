@@ -3,6 +3,7 @@ import { h, mount, once, toast } from "./dom.ts";
 import { playDaily } from "./game/daily.ts";
 import { playOnline } from "./game/online.ts";
 import { playFree } from "./game/freeplay.ts";
+import { playHotSeat } from "./game/hotseat.ts";
 import { playBot } from "./game/practice.ts";
 import { replayMatch } from "./game/replay.ts";
 import { watchMatch } from "./game/spectate.ts";
@@ -44,7 +45,8 @@ const leave = (run: () => unknown) => {
 const actions: ShellActions = {
   match: (id) => enterMatch(id),
   practice: (mode, table, level) => leave(() => playBot(ui, me!, mode, table, level, home)),
-  solo: (mode, table, assist) => leave(() => playFree(ui, me!, mode, table, assist, home)),
+  solo: (mode, table, assist, setup) => leave(() => playFree(ui, me!, mode, table, assist, home, setup)),
+  hotseat: (mode, table, names) => leave(() => playHotSeat(ui, me!, mode, table, names, home)),
   watch: (id) => leave(() => watchMatch(ui, id, home, actions.replay)),
   replay: (id) => leave(() => replayMatch(ui, id, home)),
   daily: () => leave(() => playDaily(ui, me!, (p) => ((me = p ?? me), home()))),

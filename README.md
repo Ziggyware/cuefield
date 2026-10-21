@@ -15,7 +15,7 @@ Overhead 2D pool, 8-ball and 9-ball, with online play, a bot, cues and tables bo
 - `frontend/` — vanilla TS client.
   - WebGL2 renderer: two-lamp inverse-square lighting, GGX ball specular, analytic contact shadows, spinning ball orientation.
   - Aim guide built from the real simulator, with line, dotted, chevron and ghost-ball preview methods.
-  - Stroke controls: power grows from the press point (right dock), fine aim on the left, chalk and spin/massé in the HUD. Above 80% power an optional two-stop perfect-strike game sets the stroke error.
+  - Stroke controls as full-height bands: the power band owns every pixel from the left screen edge to the left edge of the table and the precision (fine-aim) band from the right edge of the table to the right screen edge — press anywhere inside a band to drive it. Left-handed play mirrors the bands. Chalk and spin/massé dock in the centre of a compact HUD whose player cards are half-width and pinned into the top corners. Above 80% power an optional two-stop perfect-strike game sets the stroke error.
   - WebRTC data channel for low-latency strokes, live aim and emotes. Signalling and a relay fallback run through the match mailbox.
   - Bot opponent runs in a Web Worker.
 
@@ -36,9 +36,26 @@ Overhead 2D pool, 8-ball and 9-ball, with online play, a bot, cues and tables bo
 - Pockets: each mouth is a pair of rounded jaw tips with a tapering funnel. A ball must pass the jaw line and reach the drop circle, so cuts that clip a facing rattle out instead of being swallowed.
 - Collisions are found by continuous detection inside 0.5 ms steps.
 
+## Table feel and new ways to play
+
+Ten intrinsic features, all local-first and free (settings under TABLE FEEL and MOTION):
+
+1. **Rail chalk marks** — cushions keep fading scuffs where balls struck wood this rack, like a well-used club table (`shared/physics` rail events now carry the contact point; presentation only).
+2. **Cloth whispers** — one line after every settled shot explaining the real mechanics behind it: throw, squirt, stun, draw, follow, massé, rattled jaws, plus rotating table wisdom for quiet shots (`shared/lore.ts`). Every ball also has a nickname (the 8 is *the widow*, the 9 *the money ball*), shown in whispers and on the pocketed-ball gutter.
+3. **Bullet time** — playback eases toward 0.3× while a ball closes on a drop circle and snaps back after; physics still steps in fixed slices, so nothing desyncs.
+4. **Pocket ledger** — drops vs rattles tallied at each mouth this rack, drawn quietly beside the pockets so you learn which jaws are hungry.
+5. **Hot seat · pass & play** — two players, one device, any venue and mode: an opaque curtain hides the table at every hand-over. No coins, no server.
+6. **Around the World drill** — twelve stations ringing the table with one ball to drop from each; the run's stroke count is kept against a local personal best.
+7. **Trick racks** — six deterministic practice setups (the wall, the wedge, the snake, ouroboros, frozen duo, lone wolf) that repeat the exact same layout until the trick lands (`shapeRack` in `shared/game/rack.ts`).
+8. **Railbird badges** — fourteen obscure pool-hall achievements (Golden Break, Jawbreaker, Massé Maestro, Night Owl, The Wall…) tracked on-device with a badge case on the rank tab.
+9. **Table talk** — the bot opponent reacts to the run of play with sparing, contextual emotes from the rail's own vocabulary.
+10. **Nerves** — a heartbeat vignette and low lub-dub pulse as your shot clock runs under 40%, quickening toward the timeout; respects `prefers-reduced-motion`.
+
 ## Setup
 
 TURN (optional): set `TURN_URL` (comma-separated), `TURN_USER` and `TURN_PASS`. Without them, play uses STUN plus the relay.
+
+Local preview (optional): `npm install && npm run dev` serves the frontend through Vite against a mock of the HTTP API (`dev/mock-api.ts`) so practice, drills, trick racks, hot seat and an offline bot match run without the Val Town runtime. Production remains `main.tsx`.
 
 ## Rewards and match presentation
 
@@ -53,7 +70,7 @@ TURN (optional): set `TURN_URL` (comma-separated), `TURN_USER` and `TURN_PASS`. 
 Requires Node 22 with its built-in SQLite module:
 
 ```sh
-npx --yes tsx --test tests/rewards.test.ts tests/physics.test.ts
+npx --yes tsx --test tests/rewards.test.ts tests/physics.test.ts tests/features.test.ts
 npx --yes -p typescript tsc --noEmit --allowImportingTsExtensions --moduleResolution bundler --module esnext --target es2022 --lib es2022,dom,dom.iterable frontend/main.ts
 ```
 

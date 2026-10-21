@@ -1,13 +1,16 @@
 import { narrate, narrationButton, roundText } from "../ui/rewards.ts";
 import type { AssistLevel, CueSpec } from "../../shared/catalog.ts";
 import type { GameState } from "../../shared/game/types.ts";
+import { whisperOf } from "../../shared/lore.ts";
 import { Audio } from "../audio.ts";
+import { observe, resetRun } from "../badges.ts";
 import { prefs } from "../prefs/store.ts";
 import { h } from "../dom.ts";
 import { Overlay } from "../render/overlay.ts";
 import { Renderer } from "../render/renderer.ts";
 import { Hud, type HudEvents, type Seat } from "../ui/hud.ts";
 import { setWide, size, virtRect } from "../screen.ts";
+import { RAIL } from "../view.ts";
 import { bindInput } from "./input.ts";
 import { canVibrate } from "./motion.ts";
 import { Session, type SessionHooks } from "./session.ts";
@@ -60,14 +63,24 @@ export function mountTable(
   ];
   const hud = new Hud(seats, stake, { ...ev, extra }, opts.unlocks ?? []);
   const recap = h("div", { class: "round-recap", role: "status", "aria-live": "polite", text: "Rack ready · Make your opening play" });
-  const commentary = h("div", { class: "commentary" }, recap, narrationButton());
+  /** Cloth whispers: one line of physics or table lore after every settled shot. */
+  const whisper = h("div", { class: "whisper", "aria-live": "polite" });
+  const commentary = h(
+    "div",
+    { class: "commentary" },
+    h("div", { style: "display:flex;flex-direction:column;gap:3px;min-width:0" }, recap, whisper),
+    narrationButton(),
+  );
+  /** Nerves: the heartbeat vignette over the whole table. */
+  const nerves = h("div", { class: "nerves" });
   session.controls.attach(hud.chalk, hud.cue);
-  const root = h("div", { style: "position:absolute;inset:0;pointer-events:none" }, hud.root, session.controls.root, session.gutter.root, commentary);
+  const root = h("div", { style: "position:absolute;inset:0;pointer-events:none" }, nerves, hud.root, session.controls.root, session.gutter.root, commentary);
   ui.replaceChildren(root);
   // The gutter measures its label from layout, so re-slot after the first paint.
   requestAnimationFrame(() => session.gutter.layout());
   const unbind = bindInput(session, document.getElementById("ov")!);
   let mine = false, lastTick = 0, lastAvail = 0, seenShot = session.state.shot, ended = session.state.winner >= 0;
+  let lastTl = -1, lastTr = -1, nextBeat = 0;
   const title = document.title;
   /** HUD, alerts and counters at 10 Hz: layout reads stay off the render frame. */
   const tick = () => {
@@ -81,6 +94,25 @@ export function mountTable(
       if (st.winner < 0) narrate(summary);
       const l = st.last;
       hud.run = l && !l.foul && l.keep && l.pocketed.length ? hud.run + 1 : 0;
+      if (st.shot === 1) resetRun();
+      // Only the stroke that actually produced this report: an undo/rewind restores an older state whose shot
+      // number no longer matches the last simulated stroke, and must not re-feed whispers or badges.
+      const ls = session.lastShot;
+      if (l && ls && ls.cmd.k === "strike" && ls.pre.shot === st.shot - 1) {
+        // The cloth whispers what just happened, and the badge case watches every shot.
+        const line = prefs.whispers ? whisperOf(ls.cmd, l, st, { jaws: session.shotJaws, rails: session.shotRails }) : null;
+        whisper.textContent = line ?? "";
+        whisper.classList.toggle("show", !!line);
+        observe({
+          pre: ls.pre,
+          st,
+          rep: l,
+          cmd: ls.cmd,
+          seat: hooks.isLocal(l.by) ? l.by : null,
+          jaws: session.shotJaws,
+          rails: session.shotRails,
+        });
+      }
     }
     if (st.winner >= 0 && !ended && seats[1].name !== "") g.audio.finale(hooks.isLocal(st.winner as 0 | 1));
     ended = st.winner >= 0;
@@ -92,9 +124,38 @@ export function mountTable(
       session.controls.root.style.top = `${top}px`;
       session.controls.root.style.setProperty("--avail", `${avail}px`);
     }
+    // Stroke bands: each runs from a live table edge out to its screen edge. The same edges are published on the
+    // root so the commentary strip can keep to the clear centre.
+    const v = session.view, w = size().w;
+    const halfW = (session.spec.L / 2 + RAIL) * v.s;
+    const tl = Math.round(Math.max(84, Math.min(w - 84, v.cx - halfW)));
+    const tr = Math.round(Math.max(84, Math.min(w - 84, v.cx + halfW)));
+    if (tl !== lastTl || tr !== lastTr) {
+      lastTl = tl;
+      lastTr = tr;
+      session.controls.zones(tl, tr);
+      root.style.setProperty("--tl", `${tl}px`);
+      root.style.setProperty("--tr", `${tr}px`);
+      root.style.setProperty("--rw", `${w - tr}px`);
+    }
     const left = session.deadline ? session.deadline - Date.now() : Infinity;
-    hud.update(session.state, !session.sim, session.deadline ? left / session.clockSpan : 1);
+    const frac = session.deadline ? left / session.clockSpan : 1;
+    hud.update(session.state, !session.sim, frac);
     const can = session.canAct();
+    // Nerves: the table pulses and your heart does with it as the clock runs down.
+    if (prefs.nerves && can && frac < 0.4 && !document.hidden) {
+      const pressure = Math.max(0, Math.min(1, 1 - frac / 0.4));
+      const beat = Math.round(950 - 520 * pressure);
+      nerves.classList.add("on");
+      nerves.style.setProperty("--beat", `${beat}ms`);
+      if (Date.now() >= nextBeat) {
+        g.audio.heartbeat(pressure);
+        nextBeat = Date.now() + beat;
+      }
+    } else {
+      nerves.classList.remove("on");
+      nextBeat = 0;
+    }
     if (can && !mine && seats[1].name !== "") alertTurn(g.audio);
     mine = can;
     document.title = can && document.hidden && prefs.turnAlert && Math.floor(Date.now() / 700) % 2 ? "▶ your shot" : title;

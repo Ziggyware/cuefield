@@ -4,7 +4,7 @@ import type { Preview } from "../aim.ts";
 import { paletteHex } from "../prefs/look.ts";
 import { prefs } from "../prefs/store.ts";
 import type { View } from "../view.ts";
-import { chevrons, cone, dotted, ghostBalls, poly, trails, withAlpha } from "./aids.ts";
+import { chevrons, cone, dotted, ghostBalls, heatLedger, poly, railMarks as scuffs, trails, withAlpha } from "./aids.ts";
 import { banks, kitchen, labels, pots, rings } from "./aids-table.ts";
 import { drawStick, type Stick } from "./stick.ts";
 
@@ -20,6 +20,10 @@ export interface OverlayFrame {
   pockets: { called: number; pulse: number } | null;
   cone: { x: number; y: number; angle: number; sigma: number; len: number } | null;
   trails: Map<number, [number, number][]> | null;
+  /** Chalk scuffs left on the cushions this rack. */
+  railMarks: { x: number; y: number; j: number; t: number }[];
+  /** Pocket ledger tallies, or null when hidden. */
+  heat: { pots: number[]; jaws: number[] } | null;
   /** Recent jaw contacts from the current shot: rejection flashes. */
   jawHits: { x: number; y: number; t: number }[];
   /** Balls in motion (spin vectors) and all balls (labels). */
@@ -48,7 +52,9 @@ export class Overlay {
     g.setTransform(v.dpr, 0, 0, v.dpr, 0, 0);
     g.clearRect(0, 0, v.w, v.h);
 
+    if (f.railMarks.length && prefs.railMarks) scuffs(g, v, f.railMarks, performance.now());
     if (f.trails && prefs.trails) trails(g, v, f.trails, f.moving ? 0.6 : 0.35);
+    if (f.heat && prefs.pocketHeat) heatLedger(g, v, geo.pockets, f.heat, A);
     if (f.jawHits.length) this.jawFlash(f.jawHits);
     if (f.place?.kitchen != null) kitchen(g, v, f.place.kitchen, L, W, A);
     if (f.targets.length) rings(g, v, f.targets, rp);

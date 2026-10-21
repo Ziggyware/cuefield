@@ -249,7 +249,8 @@ table.list td:last-child {
 .brag { display: block; color: var(--fg); font-size: .85em; padding-top: 8px; }
 .award-list { display: grid; gap: 8px; }
 .reward-line { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding: 8px 0; font-size: .85em; }
-.commentary { position: absolute; bottom: 52px; left: 16px; right: 16px; display: flex; gap: 10px; align-items: center; pointer-events: none; }
+/* The strip keeps to the clear centre between the power and precision bands (--tl/--rw are the live table edges). */
+.commentary { position: absolute; bottom: 52px; left: calc(var(--tl, 160px) + 12px); right: calc(var(--rw, 126px) + 12px); display: flex; gap: 10px; align-items: center; pointer-events: none; }
 .round-recap { max-width: 700px; font-size: 12px; line-height: 1.4; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
 .narration-toggle { margin-left: auto; pointer-events: auto; font-size: 11px; white-space: nowrap; }
 .modal > div { max-height: 88vh; overflow-y: auto; overscroll-behavior: contain; }

@@ -137,7 +137,7 @@ export class Sim {
           // Hitting the top of the cushion kicks the ball down and back onto the slate instead of over the rail.
           if (high && facing === undefined) a.vz = Math.min(a.vz, -Math.max(0.15, -vn * 0.45));
           if (facing !== undefined) this.events.push({ k: "jaw", t: this.t, a: a.id, p: facing, j, x: a.x - s.nx * R, y: a.y - s.ny * R });
-          else this.events.push({ k: "rail", t: this.t, a: a.id, j });
+          else this.events.push({ k: "rail", t: this.t, a: a.id, j, x: a.x - s.nx * R, y: a.y - s.ny * R });
         }
       } else if (kind === 3) {
         const a = B[i0], p = G.points[i1];
@@ -148,7 +148,7 @@ export class Sim {
         const j = ballRail(a, dx / d, dy / d, high ? 0.32 : G.cloth.eCushion);
         if (j > 0) {
           if (high) a.vz = Math.min(a.vz, -Math.max(0.15, -vn * 0.45));
-          this.events.push({ k: "rail", t: this.t, a: a.id, j });
+          this.events.push({ k: "rail", t: this.t, a: a.id, j, x: a.x - (dx / d) * R, y: a.y - (dy / d) * R });
         }
       } else if (kind === 4) {
         const a = B[i0], jw = this.jaws[i1];

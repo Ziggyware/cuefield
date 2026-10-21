@@ -1,5 +1,5 @@
 import { begin, settle } from "../../shared/game/engine.ts";
-import { DT } from "../../shared/physics/constants.ts";
+import { DT, R } from "../../shared/physics/constants.ts";
 import type { Ball, SimEvent } from "../../shared/physics/types.ts";
 import { prefs } from "../prefs/store.ts";
 import type { Session } from "./session.ts";
@@ -33,10 +33,36 @@ function haptics(ev: SimEvent[]): void {
   if (ms > 7) navigator.vibrate(ms);
 }
 
+/**
+ * Bullet time: the deepest slow-down any rolling ball deserves right now. A ball closing on a drop circle slows
+ * playback toward 0.3×, strongest at the lip. Presentation only — the physics still steps in fixed DT slices.
+ */
+function bulletFactor(S: Session): number {
+  if (!prefs.bulletTime || !S.sim) return 1;
+  let f = 1;
+  for (const b of S.sim.balls) {
+    if (!b.on || b.z > 0.02) continue;
+    const sp = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+    if (sp < 0.3) continue;
+    for (const p of S.geo.pockets) {
+      const dx = p.hx - b.x, dy = p.hy - b.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const range = p.hr + 2.4 * R;
+      if (d >= range) continue;
+      const closing = (b.vx * dx + b.vy * dy) / (d || 1);
+      if (closing > 0.05) f = Math.min(f, 0.3 + 0.7 * (d / range));
+    }
+  }
+  return f;
+}
+
 /** Steps the live shot at the chosen playback rate; settles it into the next state when every ball is at rest. */
 export function advanceShot(S: Session, dt: number): Ball[] {
   const s = S.sim!;
-  S.acc += dt * prefs.playbackSpeed;
+  const target = bulletFactor(S);
+  S.bullet += (target - S.bullet) * 0.2;
+  if (Math.abs(S.bullet - target) < 0.01) S.bullet = target;
+  S.acc += dt * prefs.playbackSpeed * S.bullet;
   while (S.acc >= DT && !s.done) {
     s.step();
     S.orient.advance(s.balls, DT);
@@ -51,11 +77,18 @@ export function advanceShot(S: Session, dt: number): Ball[] {
       const p = S.geo.pockets[e.p];
       const [x] = S.view.toScreen(p.hx, p.hy);
       S.gutter.pocket(e.a, x);
+      S.heat.pots[e.p]++;
     } else if (e.k === "jaw") {
       S.jawHits.push({ x: e.x, y: e.y, t: now });
+      S.heat.jaws[e.p]++;
+      S.shotJaws++;
+    } else if (e.k === "rail") {
+      S.shotRails++;
+      if (prefs.railMarks) S.railMarks.push({ x: e.x, y: e.y, j: e.j, t: now });
     }
   }
   if (S.jawHits.length > 8) S.jawHits.splice(0, S.jawHits.length - 8);
+  if (S.railMarks.length > 36) S.railMarks.splice(0, S.railMarks.length - 36);
   S.heard = s.events.length;
   record(S, s.balls);
   if (!s.done) return s.balls;

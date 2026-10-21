@@ -3,6 +3,7 @@ import { mustCall } from "../../shared/game/validate.ts";
 import type { Ball } from "../../shared/physics/types.ts";
 import { R } from "../../shared/physics/constants.ts";
 import { preview } from "../aim.ts";
+import { RAIL_FADE } from "../render/aids.ts";
 import { cueLevelTotal } from "../../shared/upgrades.ts";
 import type { OverlayFrame } from "../render/overlay.ts";
 import { prefs } from "../prefs/store.ts";
@@ -25,7 +26,10 @@ export function startLoop(S: Session): void {
     S.controls.setEnabled(S.canAct());
     const live = !!(S.sim || S.replay);
     const rings = S.assist > 1 && S.state.broken && prefs.ringColor === "spectrum";
-    const animated = live || S.dirty || v.moving() || (S.canAct() && (mustCall(S.state) || rings));
+    // Fading chalk scuffs and pocket flashes keep the table animating after the balls have stopped.
+    const freshMarks = S.railMarks.length > 0 && now - S.railMarks[S.railMarks.length - 1].t < RAIL_FADE;
+    const freshJaws = S.jawHits.length > 0 && now - S.jawHits[S.jawHits.length - 1].t < 900;
+    const animated = live || S.dirty || v.moving() || freshMarks || freshJaws || (S.canAct() && (mustCall(S.state) || rings));
     const s2 = animated ? "" : signature(S, w, h);
     if (animated || s2 !== sig) {
       const balls = S.sim ? advanceShot(S, dt) : S.replay ? advanceReplay(S, dt) : withCueAt(S.state.balls, handPos(S));
@@ -65,7 +69,21 @@ function coneOf(S: Session, at: [number, number]): OverlayFrame["cone"] {
 function overlayFrame(S: Session, now: number, balls: Ball[]): OverlayFrame {
   const cb = S.state.balls[0];
   const moving = S.sim || S.replay ? balls : null;
-  const f: OverlayFrame = { preview: null, stick: null, place: null, pockets: null, targets: [], cone: null, trails: S.trails, moving, balls, bankFrom: null, jawHits: S.jawHits };
+  const f: OverlayFrame = {
+    preview: null,
+    stick: null,
+    place: null,
+    pockets: null,
+    targets: [],
+    cone: null,
+    trails: S.trails,
+    railMarks: S.railMarks,
+    heat: prefs.pocketHeat ? S.heat : null,
+    moving,
+    balls,
+    bankFrom: null,
+    jawHits: S.jawHits,
+  };
   if (moving) return f;
   if (S.canAct()) {
     if (S.dirty && now - S.prevAt > (S.assist === 4 ? 110 : 40)) {

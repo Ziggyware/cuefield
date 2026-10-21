@@ -1,0 +1,13 @@
+{
+  "name": "cuefield-dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "test": "npx --yes tsx --test tests/rewards.test.ts tests/physics.test.ts tests/features.test.ts",
+    "typecheck": "npx --yes -p typescript tsc --noEmit --allowImportingTsExtensions --moduleResolution bundler --module esnext --target es2022 --lib es2022,dom,dom.iterable frontend/main.ts"
+  },
+  "devDependencies": {
+    "vite": "^7.1.9"
+  }
+}

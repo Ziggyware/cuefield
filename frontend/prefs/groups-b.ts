@@ -22,7 +22,7 @@ export const GROUPS_B: Group[] = [
   {
     title: "CONTROLS",
     defs: [
-      { k: "leftHanded", label: "left-handed layout", note: "Power bar right, spin and elevation left.", c: T },
+      { k: "leftHanded", label: "left-handed layout", note: "Mirror the stroke zones: power band on the right of the table, precision band on the left.", c: T },
       {
         k: "aimSensitivity",
         label: "aim sensitivity",

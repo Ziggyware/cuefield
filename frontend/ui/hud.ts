@@ -28,9 +28,9 @@ export class Hud {
   cards: HTMLElement[];
   clocks: HTMLElement[];
   balls: HTMLElement[];
-  /** Left dock, immediately right of seat 0: the chalk selections live here. */
+  /** Centre dock, left of the status panel: the chalk selections live here. */
   chalk: HTMLElement;
-  /** Right dock, immediately left of seat 1: spin and massé live here. */
+  /** Centre dock, right of the status panel: spin and massé live here. */
   cue: HTMLElement;
   private seats: [Seat, Seat];
   private ups: HTMLElement[];
@@ -54,10 +54,10 @@ export class Hud {
     this.cards = seats.map((s, i) =>
       h(
         "div",
-        { class: "pc" },
-        h("div", { class: "row" }, h("span", { text: s.name }), s.rating ? h("span", { class: "k", text: s.rating }) : null),
-        this.ups[i],
+        { class: i ? "pc seat-b" : "pc" },
+        h("div", { class: "row" }, h("span", { text: s.name, title: s.name }), s.rating ? h("span", { class: "k", text: s.rating }) : null),
         this.balls[i],
+        this.ups[i],
         this.clocks[i],
       )
     );
@@ -88,7 +88,14 @@ export class Hud {
     );
     this.chalk = h("div", { class: "dock chalk-dock", title: "chalk selections" });
     this.cue = h("div", { class: "dock cue-dock", title: "spin and massé" });
-    this.root = h("div", { class: "hud" }, this.cards[0], this.chalk, this.mid, this.cue, this.cards[1]);
+    // Cards pin into the top corners; chalk, status and cue controls share the freed centre.
+    this.root = h(
+      "div",
+      { class: "hud" },
+      this.cards[0],
+      this.cards[1],
+      h("div", { class: "hud-mid" }, this.chalk, this.mid, this.cue),
+    );
     if (seats[1].name === "") this.cards[1].style.visibility = "hidden";
   }
 
@@ -110,15 +117,17 @@ export class Hud {
       if (this.ups[i].dataset.k !== ck) {
         this.ups[i].dataset.k = ck;
         const chips = cue ? cueChips(cue) : [];
+        // One condensed badge line: the full upgrade list lives in its tooltip.
+        const color = chips.find((c) => c.id === "color");
         this.ups[i].replaceChildren(
-          ...chips.map((c) =>
-            h("i", {
-              class: `up up-${c.id}`,
-              title: `${c.name} ${c.level}/${5}`,
-              text: `${c.short}${c.level}`,
-              style: c.id === "color" && cue ? `background:${cue.ring};color:#08090a` : undefined,
-            }),
-          ),
+          ...(chips.length
+            ? [h("i", {
+              class: "up",
+              title: chips.map((c) => `${c.name} ${c.level}/${5}`).join(" · "),
+              text: chips.map((c) => `${c.short}${c.level}`).join(" "),
+              style: color && cue ? `background:${cue.ring};color:#08090a` : undefined,
+            })]
+            : []),
         );
       }
     }
