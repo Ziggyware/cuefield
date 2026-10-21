@@ -1,3 +1,4 @@
+import { progression } from "../shared/rewards.ts";
 import { CUES, DAILY_BASE, DAILY_CAP, DAILY_STEP } from "../shared/catalog.ts";
 import { SOCIAL } from "../shared/social.ts";
 import { featurePrice } from "../shared/features.ts";
@@ -28,6 +29,7 @@ export function view(p: Player) {
     streak: p.streak,
     upgrades: p.upgrades,
     earned: p.earned,
+    progression: progression(p.xp),
     winStreak: p.win_streak,
     bestStreak: p.best_streak,
     botWins: p.bot_wins,
@@ -47,8 +49,8 @@ export async function claimDaily(p: Player): Promise<{ amount: number } | { erro
   const streak = now - p.daily_at < 2 * DAY ? p.streak + 1 : 1;
   const amount = DAILY_BASE + DAILY_STEP * Math.min(streak - 1, DAILY_CAP);
   const r = await q(
-    `UPDATE players SET coins = coins + ?, daily_at = ?, streak = ? WHERE id = ? AND daily_at = ? RETURNING coins`,
-    [amount, now, streak, p.id, p.daily_at],
+    `UPDATE players SET coins = coins + ?, xp = xp + ?, daily_at = ?, streak = ? WHERE id = ? AND daily_at = ? RETURNING coins`,
+    [amount, amount, now, streak, p.id, p.daily_at],
   );
   return r.length ? { amount } : { error: "daily-wait" };
 }

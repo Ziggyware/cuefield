@@ -17,6 +17,7 @@ export interface GameState {
   fouls: [number, number];
   winner: -1 | 0 | 1;
   last: Report | null;
+  stats?: [import("../rewards.ts").RackStats, import("../rewards.ts").RackStats];
   seed?: number;
   score?: [number, number];
 }

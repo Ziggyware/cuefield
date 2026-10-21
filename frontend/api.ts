@@ -60,6 +60,7 @@ export interface Profile {
   streak: number;
   upgrades: Upgrades;
   earned: number;
+  progression: ReturnType<typeof import("../shared/rewards.ts").progression>;
   winStreak: number;
   bestStreak: number;
   botWins: number;

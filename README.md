@@ -36,3 +36,22 @@ Overhead 2D pool, 8-ball and 9-ball, with online play, a bot, cues and tables bo
 ## Setup
 
 TURN (optional): set `TURN_URL` (comma-separated), `TURN_USER` and `TURN_PASS`. Without them, play uses STUN plus the relay.
+
+## Rewards and match presentation
+
+- Online and server-verified bot matches automatically settle ten bounties: victory (30c), 3-ball visit (20c), 5-ball visit (45c), double-pot (15c), foul-free win (25c), every third consecutive win (60c), every fifth consecutive win (120c), plus daily two-match (35c), ten-pot (50c), and first-win (40c) contracts. Bounties stack. Daily contracts reset at midnight UTC and pay once per player/day. Match bounties pay once per match. Streaks span bot and online results and reset on losses. At least one shot is required; instant concessions do not qualify.
+- `shared/rewards.ts` defines rewards, deterministic per-seat rack stats, highlights, and level thresholds. A visit's consecutive-ball run ends on a miss, foul, or turn change. Scratches, respots, and uncalled shots do not award pots. Practice never awards currency.
+- `reward_matches` stores verified progress; `reward_awards` has unique claim keys. A SQLite insert trigger credits bonus coins and XP together, preventing duplicate payouts on repeated settlement. Database triggers prohibit negative balances; fines clamp to zero and apply only after a successful version-guarded match update.
+- Each awarded coin is one lifetime XP, including login rewards, daily-rack rewards, pots, and bounties. Fees, purchases, and fines do not subtract XP; abandoned-match escrow refunds do not grant XP. Level n starts at `250 × (n−1)²` XP. New accounts include starting coins. Legacy accounts start from their current nonnegative balance on migration: historical gross earnings cannot be reconstructed from the old net-only records. All subsequent awards are counted exactly.
+- The lobby contains a live bounty board and level progress. Bot and online results show both players' shots, pots, fouls, best visit, multi-pot record, and earned bragging highlights, alongside verified bonuses. Each settled shot has a persistent brief recap. Optional browser speech narration can be toggled at the table and is saved locally; no external voice service is required. Unsupported browsers still show all text recaps. Entry transitions respect `prefers-reduced-motion`.
+
+### Verification
+
+Requires Node 22 with its built-in SQLite module:
+
+```sh
+npx --yes tsx --test tests/rewards.test.ts
+npx --yes -p typescript tsc --noEmit --allowImportingTsExtensions --moduleResolution bundler --module esnext --target es2022 --lib es2022,dom,dom.iterable frontend/main.ts
+```
+
+The integration test runs the actual reward settlement code against in-memory SQLite, substituting only the Val Town database transport. It covers duplicate settlement, daily progress/reset, win streaks, zero-shot exclusions, database balance floors, and XP preservation through fines. The deployed backend still requires the Val Town runtime and its hosted SQLite/OAuth imports.

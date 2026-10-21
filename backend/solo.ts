@@ -1,3 +1,4 @@
+import { settleRewards } from "./rewards.ts";
 import { BOT_CUES, BOT_DAILY_NET, botPot, cueById, isMode, type Mode, tableById } from "../shared/catalog.ts";
 import { newGame, play } from "../shared/game/engine.ts";
 import type { StrikeCmd } from "../shared/game/types.ts";
@@ -40,8 +41,7 @@ export async function startSolo(p: Player, mode: unknown, table: unknown, level:
 export async function finishSolo(p: Player, id: unknown, log: unknown) {
   const row = await one(`SELECT * FROM solo WHERE id = ? AND player_id = ?`, [String(id), p.id]);
   if (!row) return { error: "solo" };
-  const closed = await q(`UPDATE solo SET done = 1, ended = ? WHERE id = ? AND done = 0 RETURNING id`, [Date.now(), row.id]);
-  if (!closed.length) return { error: "done" };
+  if (Number(row.done)) return { error: "done" };
   if (!Array.isArray(log) || log.length > MAX_SHOTS) return { error: "log" };
   const lvl = Number(row.level);
   const cues = [parseCue(String(row.cue)), cueById(BOT_CUES[lvl])];
@@ -54,11 +54,14 @@ export async function finishSolo(p: Player, id: unknown, log: unknown) {
     st = play(st, cmd, cue).state;
   }
   if (st.winner < 0) return { error: "unfinished" };
+  const closed = await q(`UPDATE solo SET done = 1, ended = ? WHERE id = ? AND done = 0 RETURNING id`, [Date.now(), row.id]);
+  if (!closed.length) return { error: "done" };
   const fee = Number(row.fee);
   if (st.winner !== 0) {
     await q(`UPDATE solo SET won = 0 WHERE id = ?`, [row.id]);
     await q(`UPDATE players SET bot_losses = bot_losses + 1, earned = earned - ? WHERE id = ?`, [fee, p.id]);
-    return { won: false, reward: 0 };
+    const bonuses = await settleRewards(p.id, `solo:${row.id}`, false, st.stats?.[0]);
+    return { won: false, reward: 0, bonuses };
   }
   const today = Math.floor(Date.now() / DAY);
   const earned = p.solo_day === today ? p.solo_earned : 0;
@@ -66,8 +69,9 @@ export async function finishSolo(p: Player, id: unknown, log: unknown) {
   const reward = fee + house;
   await q(`UPDATE solo SET won = 1, pot = ? WHERE id = ?`, [reward, row.id]);
   await q(
-    `UPDATE players SET coins = coins + ?, earned = earned + ?, solo_day = ?, solo_earned = ?, bot_wins = bot_wins + 1 WHERE id = ?`,
-    [reward, house, today, earned + house, p.id],
+    `UPDATE players SET coins = coins + ?, xp = xp + ?, earned = earned + ?, solo_day = ?, solo_earned = ?, bot_wins = bot_wins + 1 WHERE id = ?`,
+    [reward, reward, house, today, earned + house, p.id],
   );
-  return { won: true, reward, capped: house < botPot(tableById(String(row.table_id))!, lvl) - fee };
+  const bonuses = await settleRewards(p.id, `solo:${row.id}`, true, st.stats?.[0]);
+  return { won: true, reward, bonuses, capped: house < botPot(tableById(String(row.table_id))!, lvl) - fee };
 }

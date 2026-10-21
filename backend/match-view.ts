@@ -64,6 +64,7 @@ export async function matchView(m: Match, seat: 0 | 1 | -1) {
     next: m.next,
     h2h,
     watching,
+    bonuses: m.status === "done" && seat >= 0 ? await q(`SELECT title, amount FROM reward_awards WHERE player_id = ? AND match_id = ?`, [m.p[seat as 0 | 1], `online:${m.id}`]) : [],
     last: m.log.length ? m.log[m.log.length - 1] : null,
   };
 }
