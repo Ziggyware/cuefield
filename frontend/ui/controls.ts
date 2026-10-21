@@ -1,13 +1,15 @@
 import type { Aim } from "../aim.ts";
+import type { CueSpec } from "../../shared/catalog.ts";
 import { h } from "../dom.ts";
-import { toVirt, rotated } from "../screen.ts";
+import { rotated, toVirt } from "../screen.ts";
 import { drag } from "./drag.ts";
-import { prefs } from "../prefs/store.ts";
+import { onPref, prefs } from "../prefs/store.ts";
 import { canVibrate } from "../game/motion.ts";
+import { type Game, handChalkGame, strikeGame, tipChalkGame } from "./minigames.ts";
 
 export interface ControlEvents {
   change(): void;
-  shoot(power: number): void;
+  shoot(power: number, finesse?: number): void;
 }
 
 function getCenterAndSize(el: HTMLElement) {
@@ -15,53 +17,95 @@ function getCenterAndSize(el: HTMLElement) {
   const scx = r.left + r.width / 2;
   const scy = r.top + r.height / 2;
   const [cx, cy] = toVirt(scx, scy);
-  
   const w = rotated() ? r.height : r.width;
-  const h = rotated() ? r.width : r.height;
-  return { cx, cy, w, h };
+  const hh = rotated() ? r.width : r.height;
+  return { cx, cy, w, h: hh };
 }
 
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+/**
+ * Stroke controls. Power and the fine-aim "intensity" strip sit beside the cloth (right and left respectively, mirrored
+ * for left-handed play); the chalk selections dock right of the player name and spin/massé dock left of the opponent's.
+ */
 export class Controls {
   root: HTMLElement;
-  power = h("div", { class: "power" }, h("i"), h("span", { class: "pct" }));
-  fine = h("div", { class: "fine" });
-  spin = h("div", { class: "spin" }, h("b"), h("i"));
-  elev = h("div", { class: "elev" }, h("i"), h("span", { class: "v" }));
-  
-  tipBtn = h("button", { style: "height: 52px; font-weight: 600;" });
-  handBtn = h("button", { style: "height: 52px; font-weight: 600;" });
-  
+  power = h("div", { class: "power", title: "pull for power · starts where you press" }, h("i"), h("b", { class: "origin" }), h("span", { class: "pct" }));
+  fine = h("div", { class: "fine", title: "fine aim · drag for angle" }, h("i"));
+  spin = h("div", { class: "spin", title: "tip offset · double-tap to centre" }, h("b"), h("i"), h("u", { class: "range" }));
+  elev = h("div", { class: "elev", title: "cue elevation / massé" }, h("i"), h("span", { class: "v" }));
+
+  tipBtn = h("button", { class: "chalk-chip tip", title: "tip chalk: timing game" });
+  handBtn = h("button", { class: "chalk-chip hand", title: "hand chalk: scrub game" });
+  chalkDock = h("div", { class: "chalk-set" });
+  cueDock = h("div", { class: "cue-set" });
+  readSpin = h("span", { class: "cue-val" });
+  readElev = h("span", { class: "cue-val" });
+
   pull = 0;
+  /** Bar fraction where the current drag started, and which way the fill grows. */
+  originFrac = 1;
+  fillDir = -1;
   enabled = false;
   armed: HTMLElement;
-  chalkGame: HTMLElement;
+  gameHost: HTMLElement;
+  game: Game | null = null;
   activeRaf = 0;
-  
+
   aim: Aim;
   maxElev: number;
+  cue: CueSpec;
   ev: ControlEvents;
 
-  constructor(aim: Aim, maxElev: number, ev: ControlEvents) {
+  constructor(aim: Aim, maxElev: number, ev: ControlEvents, cue: CueSpec) {
     this.aim = aim;
     this.aim.tipChalk = 0;
     this.aim.handChalk = 0;
     this.maxElev = maxElev;
     this.ev = ev;
-    
+    this.cue = cue;
+
     const pad = (el: HTMLElement) => h("div", { class: "hit" }, el);
-    const powerHit = pad(this.power), fineHit = pad(this.fine), spinHit = pad(this.spin), elevHit = pad(this.elev);
-    
-    const [near, far] = prefs.leftHanded ? ["right", "left"] : ["left", "right"];
+    const slim = (el: HTMLElement) => h("div", { class: "hit slim" }, el);
+    const powerHit = pad(this.power), fineHit = pad(this.fine), spinHit = slim(this.spin), elevHit = slim(this.elev);
+
+    // Power beside the far cushion, inset by roughly its own width; the intensity strip on the near side, inset by
+    // half of its width. Left-handed play mirrors both.
+    const powerDock = h("div", { class: "ctl dock power-dock" }, powerHit);
+    const fineDock = h("div", { class: "ctl dock fine-dock" }, fineHit);
+    const place = () => {
+      const ps = prefs.leftHanded ? "left" : "right", fs = prefs.leftHanded ? "right" : "left";
+      for (const [el, side] of [[powerDock, ps], [fineDock, fs]] as [HTMLElement, string][]) {
+        el.style.left = el.style.right = "";
+        el.style.setProperty(side, `calc(${side === ps ? 72 : 46}px + env(safe-area-inset-${side}))`);
+        el.style.top = "50%";
+        el.style.transform = "translateY(-50%)";
+      }
+    };
+    place();
+    onPref((k) => k === "leftHanded" && place());
+
     this.armed = h("div", { class: "armed" });
-    this.chalkGame = h("div");
-    
+    this.gameHost = h("div", { class: "mg-host" });
+    this.chalkDock.append(
+      h("span", { class: "dock-cap", text: "CHALK" }),
+      this.tipBtn,
+      this.handBtn,
+    );
+    this.cueDock.append(
+      h("div", { class: "cue-cell" }, h("span", { class: "dock-cap", text: "SPIN" }), spinHit, this.readSpin),
+      h("div", { class: "cue-cell" }, h("span", { class: "dock-cap", text: "MASSE" }), elevHit, this.readElev),
+    );
+    this.readSpin.title = `tip limit ${(this.cue.spin * 100).toFixed(0)}% of the ball radius`;
+    this.readElev.title = "cue elevation limit";
+
     this.root = h(
       "div",
       { style: "position:absolute;inset:0;pointer-events:none" },
-      h("div", { class: "ctl", style: `${near}:max(24px,env(safe-area-inset-${near}));top:50%;transform:translateY(-50%)` }, powerHit),
-      h("div", { class: "ctl", style: `${far}:max(24px,env(safe-area-inset-${far}));top:50%;transform:translateY(-50%)` }, fineHit),
-      h("div", { class: "bottom-tray" }, this.handBtn, this.tipBtn, elevHit, spinHit),
-      this.chalkGame,
+      powerDock,
+      fineDock,
+      this.gameHost,
       this.armed,
     );
     this.root.style.opacity = "0.35";
@@ -69,47 +113,62 @@ export class Controls {
     this.tipBtn.onclick = () => this.enabled && this.startTipGame();
     this.handBtn.onclick = () => this.enabled && this.startHandGame();
 
-    let start = 0;
+    let originY = 0, top = 0, bottom = 1;
     drag(powerHit, (e, ph) => {
       if (!this.enabled) return;
       const y = toVirt(e.clientX, e.clientY)[1];
-      if (ph === "down") start = y;
-      const prev = this.pull;
-      this.pull = Math.max(0, Math.min(1, (y - start) / (this.power.offsetHeight * 0.9)));
-      if (Math.floor(prev * 4) !== Math.floor(this.pull * 4) && canVibrate()) navigator.vibrate(6);
+      if (ph === "down") {
+        const { cy, h: bh } = getCenterAndSize(this.power);
+        top = cy - bh / 2;
+        bottom = cy + bh / 2;
+        originY = clamp(y, top + 1, bottom - 1);
+        this.originFrac = (originY - top) / bh;
+        this.fillDir = 0;
+      }
       if (ph === "up") {
         const p = this.pull;
         this.pull = 0;
+        this.originFrac = 1;
+        this.fillDir = -1;
         if (p > 0.015) {
-          if (prefs.strokeConfirm) {
-            this.arm(p, ev);
-          } else {
-            ev.shoot(p);
-            this.resetChalk();
-          }
+          if (prefs.strokeConfirm) this.arm(p);
+          else this.fire(p);
         }
+      } else {
+        const up = (originY - y) / Math.max(10, originY - top);
+        const down = (y - originY) / Math.max(10, bottom - originY);
+        const prev = this.pull;
+        this.pull = clamp01(Math.max(up, down));
+        this.fillDir = down >= up ? 1 : -1;
+        if (Math.floor(prev * 8) !== Math.floor(this.pull * 8) && canVibrate()) navigator.vibrate(5);
       }
       this.paint();
       ev.change();
     });
 
-    let last = 0;
+    let last = 0, finePos = 50;
     drag(fineHit, (e, ph) => {
       if (!this.enabled) return;
       const y = toVirt(e.clientX, e.clientY)[1];
-      if (ph !== "down") this.aim.angle += (y - last) * 0.0003 * prefs.aimSensitivity;
+      if (ph === "down") {
+        const { cy, h: bh } = getCenterAndSize(this.fine);
+        finePos = clamp(((y - (cy - bh / 2)) / bh) * 100, 4, 96);
+      } else if (ph === "move") {
+        // Half the old angular rate: twice the precision per pixel for fine aim.
+        this.aim.angle += (y - last) * 0.00015 * prefs.aimSensitivity;
+        finePos = clamp(finePos + (y - last) * 0.5, 4, 96);
+      }
+      this.fine.firstElementChild!.setAttribute("style", `top:${finePos}%`);
       last = y;
       ev.change();
     });
 
     drag(spinHit, (e, ph) => {
       if (!this.enabled || ph === "up") return;
-      const { cx, cy, w, h } = getCenterAndSize(this.spin);
+      const { cx, cy, w, h: bh } = getCenterAndSize(this.spin);
       const [vx, vy] = toVirt(e.clientX, e.clientY);
-      
       let x = (vx - cx) / (w / 2);
-      let y = -(vy - cy) / (h / 2);
-      
+      let y = -(vy - cy) / (bh / 2);
       const m = Math.hypot(x, y);
       if (m > 1) {
         x /= m;
@@ -120,7 +179,6 @@ export class Controls {
       this.paint();
       ev.change();
     });
-    
     spinHit.addEventListener("dblclick", () => {
       this.aim.tx = 0;
       this.aim.ty = 0;
@@ -130,100 +188,107 @@ export class Controls {
 
     drag(elevHit, (e) => {
       if (!this.enabled) return;
-      const { cx, cy, w, h } = getCenterAndSize(this.elev);
+      const { cx, cy, w, h: bh } = getCenterAndSize(this.elev);
       const [vx, vy] = toVirt(e.clientX, e.clientY);
-      
-      const pivotX = cx - w / 2 + 6;
-      const pivotY = cy + h / 2 - 6;
+      const pivotX = cx - w / 2 + 4;
+      const pivotY = cy + bh / 2 - 4;
       const a = Math.atan2(pivotY - vy, vx - pivotX);
-      this.aim.elev = Math.max(0, Math.min(this.maxElev, a));
+      this.aim.elev = clamp(a, 0, this.maxElev);
       this.paint();
       ev.change();
     });
-    
+
     this.paint();
   }
 
-  cancelMinigame() {
-    cancelAnimationFrame(this.activeRaf);
-    this.chalkGame.replaceChildren();
+  /** The active seat changed: retitle the limits and clamp a now-illegal elevation. */
+  setCue(cue: CueSpec, limit: number): void {
+    this.cue = cue;
+    this.maxElev = limit;
+    if (this.aim.elev > limit) this.aim.elev = limit;
+    this.readSpin.title = `tip limit ${(cue.spin * 100).toFixed(0)}% of the ball radius`;
+    this.readElev.title = `cue elevation limit ${Math.round((limit * 180) / Math.PI)}°`;
+    this.paint();
   }
 
-  startTipGame() {
-    this.cancelMinigame();
-    const zone = h("div", { class: "chalk-zone" });
-    const cursor = h("div", { class: "chalk-cursor" });
-    const bar = h("div", { class: "chalk-bar" }, zone, cursor);
-    
-    let pos = 0, dir = 1, speed = 2.5 + Math.random();
-    const loop = () => {
-      pos += dir * speed;
-      if (pos > 100) { pos = 100; dir = -1; }
-      if (pos < 0) { pos = 0; dir = 1; }
-      cursor.style.left = `${pos}%`;
-      this.activeRaf = requestAnimationFrame(loop);
-    };
-    this.activeRaf = requestAnimationFrame(loop);
+  /** Mount the two docks in the HUD. */
+  attach(chalk: HTMLElement, cue: HTMLElement): void {
+    chalk.append(this.chalkDock);
+    cue.append(this.cueDock);
+  }
 
-    const apply = () => {
-      cancelAnimationFrame(this.activeRaf);
-      const dist = Math.abs(pos - 50);
-      this.aim.tipChalk = Math.max(0, 1 - Math.max(0, dist - 10) / 30);
-      this.paint();
-      this.chalkGame.replaceChildren();
-      this.ev.change();
-    };
-    
-    this.chalkGame.replaceChildren(
-      h("div", { class: "chalk-game" },
-        h("div", { class: "chalk-title" }, h("b", { text: "TIP CHALK" }), h("br"), h("small", { class: "k", text: "TAP IN THE GREEN" })),
-        bar,
-        h("div", { class: "row" },
-          h("button", { class: "primary", text: "APPLY", onclick: apply }),
-          h("button", { text: "CANCEL", onclick: () => this.cancelMinigame() })
-        )
-      )
+  cancelMinigame(): void {
+    this.game?.stop();
+    this.game = null;
+    this.gameHost.replaceChildren();
+    this.gameHost.style.pointerEvents = "none";
+  }
+
+  private open(game: { el: HTMLElement; stop(): void }): void {
+    this.cancelMinigame();
+    this.game = game;
+    this.gameHost.replaceChildren(game.el);
+    // Block the table while a skill game is up so a stray drag cannot arm a stroke behind it.
+    this.gameHost.style.pointerEvents = "auto";
+    this.armed.replaceChildren();
+    this.pull = 0;
+    this.paint();
+  }
+
+  startTipGame(): void {
+    this.open(
+      tipChalkGame(
+        (q) => {
+          this.aim.tipChalk = q;
+          this.cancelMinigame();
+          this.paint();
+          this.ev.change();
+        },
+        () => this.cancelMinigame(),
+      ),
     );
   }
 
-  startHandGame() {
-    this.cancelMinigame();
-    const fill = h("div", { class: "chalk-fill" });
-    const bar = h("div", { class: "chalk-bar" }, fill);
-    
-    let charge = 0, lastX = 0, lastDir = 0;
-    drag(bar, (e, ph) => {
-      if (ph === 'down') lastX = e.clientX;
-      else if (ph === 'move') {
-        const dx = e.clientX - lastX;
-        if (Math.abs(dx) > 5) {
-          const dir = Math.sign(dx);
-          if (dir !== lastDir) {
-            charge += 0.08;
-            lastDir = dir;
-          }
-          lastX = e.clientX;
-          fill.style.width = `${Math.min(100, charge * 100)}%`;
-          if (charge >= 1) {
-            this.aim.handChalk = 1;
-            this.paint();
+  startHandGame(): void {
+    this.open(
+      handChalkGame(
+        (q) => {
+          this.aim.handChalk = q;
+          this.cancelMinigame();
+          this.paint();
+          this.ev.change();
+        },
+        () => this.cancelMinigame(),
+      ),
+    );
+  }
+
+  /** Above 80% power a timing check decides how cleanly the cue is delivered. */
+  private fire(p: number): void {
+    if (p > 0.8 && prefs.heavySkill) {
+      this.open(
+        strikeGame(
+          p,
+          (fine) => {
             this.cancelMinigame();
-            this.ev.change();
-          }
-        }
-      }
-    });
-
-    this.chalkGame.replaceChildren(
-      h("div", { class: "chalk-game" },
-        h("div", { class: "chalk-title" }, h("b", { text: "HAND CHALK" }), h("br"), h("small", { class: "k", text: "SCRUB LEFT & RIGHT" })),
-        bar,
-        h("button", { text: "CANCEL", onclick: () => this.cancelMinigame() })
-      )
-    );
+            this.ev.shoot(p, fine);
+            this.resetChalk();
+            this.paint();
+          },
+          () => {
+            this.cancelMinigame();
+            this.paint();
+          },
+        ),
+      );
+      return;
+    }
+    this.ev.shoot(p);
+    this.resetChalk();
+    this.paint();
   }
 
-  resetChalk() {
+  resetChalk(): void {
     this.aim.tipChalk = 0;
     this.aim.handChalk = 0;
   }
@@ -243,41 +308,56 @@ export class Controls {
     this.cancelMinigame();
   }
 
-  private arm(p: number, ev: ControlEvents): void {
+  private arm(p: number): void {
     const clear = () => this.armed.replaceChildren();
     this.armed.replaceChildren(
-      h("button", { class: "primary", text: `STRIKE ${Math.round(p * 100)}%`, onclick: () => {
-        clear();
-        if (this.enabled) {
-          ev.shoot(p);
-          this.resetChalk();
-          this.paint();
-        }
-      }}),
+      h("button", {
+        class: "primary",
+        text: `STRIKE ${Math.round(p * 100)}%`,
+        onclick: () => {
+          clear();
+          if (this.enabled) this.fire(p);
+        },
+      }),
       h("button", { text: "×", onclick: clear }),
     );
   }
 
   paint(): void {
-    const bar = this.power.firstElementChild as HTMLElement;
-    bar.style.height = `${this.pull * 100}%`;
+    const fill = this.power.firstElementChild as HTMLElement;
+    const origin = this.power.children[1] as HTMLElement;
+    if (!this.pull) {
+      fill.style.top = "100%";
+      fill.style.height = "0%";
+    } else if (this.fillDir >= 0) {
+      fill.style.top = `${this.originFrac * 100}%`;
+      fill.style.height = `${this.pull * 100}%`;
+    } else {
+      fill.style.top = `${(this.originFrac - this.pull) * 100}%`;
+      fill.style.height = `${this.pull * 100}%`;
+    }
+    origin.style.top = `${this.originFrac * 100}%`;
+    origin.style.opacity = this.pull ? "1" : "0";
     (this.power.lastElementChild as HTMLElement).textContent = this.pull ? `${Math.round(this.pull * 100)}` : "";
-    
-    const dot = this.spin.lastElementChild as HTMLElement;
-    dot.style.left = `calc(50% + ${this.aim.tx * 42}%)`;
-    dot.style.top = `calc(50% - ${this.aim.ty * 42}%)`;
-    
+
+    const dot = this.spin.children[1] as HTMLElement;
+    dot.style.left = `calc(50% + ${this.aim.tx * 40}%)`;
+    dot.style.top = `calc(50% - ${this.aim.ty * 40}%)`;
+
     (this.elev.firstElementChild as HTMLElement).style.transform = `rotate(${-this.aim.elev}rad)`;
     (this.elev.lastElementChild as HTMLElement).textContent = `${Math.round((this.aim.elev * 180) / Math.PI)}°`;
-    
+
     const tp = Math.round(this.aim.tipChalk * 100);
     this.tipBtn.style.background = `linear-gradient(0deg, var(--fg) ${tp}%, var(--raise) ${tp}%)`;
     this.tipBtn.style.color = tp > 50 ? "var(--on-fg)" : "var(--ink)";
-    this.tipBtn.textContent = `TIP ${tp}%`;
+    this.tipBtn.textContent = `TIP ${tp}`;
 
     const hp = Math.round(this.aim.handChalk * 100);
     this.handBtn.style.background = `linear-gradient(0deg, var(--fg) ${hp}%, var(--raise) ${hp}%)`;
     this.handBtn.style.color = hp > 50 ? "var(--on-fg)" : "var(--ink)";
-    this.handBtn.textContent = `HAND ${hp}%`;
+    this.handBtn.textContent = `HAND ${hp}`;
+
+    this.readSpin.textContent = `${this.aim.tx.toFixed(1)}, ${this.aim.ty.toFixed(1)}`;
+    this.readElev.textContent = `${Math.round((this.aim.elev * 180) / Math.PI)}° max ${Math.round((this.maxElev * 180) / Math.PI)}°`;
   }
 }

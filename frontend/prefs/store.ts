@@ -15,6 +15,8 @@ export const DEFAULTS = {
   ballLabels: false,
   playbackSpeed: 1,
   instantReplay: "button" as "off" | "button" | "auto",
+  previewStyle: "line" as "line" | "dots" | "chevron" | "ball",
+  heavySkill: true,
   trails: true,
   ballPalette: "vivid" as "vivid" | "classic" | "neon" | "colorblind",
   clothCustom: false,

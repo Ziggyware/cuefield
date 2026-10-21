@@ -18,6 +18,11 @@ export const mustCall = (st: GameState): boolean => needsCall(st);
 export function validate(st: GameState, c: StrikeCmd, cue: CueSpec): string | null {
   if (st.winner >= 0) return "over";
   for (const k of ["dx", "dy", "power", "tx", "ty", "el"] as const) if (!Number.isInteger(c[k])) return k;
+  if (c.finesse !== undefined && (!Number.isInteger(c.finesse) || c.finesse < 0 || c.finesse > 1000)) return "finesse";
+  for (const k of ["tipChalk", "handChalk"] as const) {
+    const v = c[k];
+    if (v !== undefined && (!Number.isFinite(v) || v < 0 || v > 1)) return "chalk";
+  }
   if (c.dx === 0 && c.dy === 0) return "aim";
   if (c.el > cue.elev || c.el < 0) return "elevation";
   if (c.place) {

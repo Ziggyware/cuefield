@@ -9,6 +9,7 @@ import { type Aim, maxElev, type Preview, toCmd } from "../aim.ts";
 import { toast } from "../dom.ts";
 import { Orient } from "../render/orient.ts";
 import { Controls } from "../ui/controls.ts";
+import { Gutter } from "../ui/gutter.ts";
 import { View } from "../view.ts";
 import { startLoop } from "./stage.ts";
 import { resetAim } from "./aim-reset.ts";
@@ -28,6 +29,10 @@ export class Session {
   heard = 0;
   aim: Aim = { angle: 0, power: 0, tx: 0, ty: 0, elev: 0, tipChalk: 1, handChalk: 1 };
   controls: Controls;
+  /** Bottom strip of pocketed balls, reconciled with the state on settle. */
+  gutter = new Gutter();
+  /** Recent jaw contacts, for the rejection flash. */
+  jawHits: { x: number; y: number; t: number }[] = [];
   place: [number, number] | null = null;
   call = -1;
   dirty = true;
@@ -66,19 +71,35 @@ export class Session {
     this.assist = assist ?? this.spec.assist;
     this.geo = geometry(state.table);
     gfx.renderer.setTable(this.spec, this.geo);
-    this.controls = new Controls(this.aim, maxElev(this.myCue()), {
-      change: () => {
-        this.dirty = true;
-        this.hooks.aim?.(this.aim, this.controls.pull, this.place);
+    this.controls = new Controls(
+      this.aim,
+      maxElev(this.myCue()),
+      {
+        change: () => {
+          this.dirty = true;
+          this.hooks.aim?.(this.aim, this.controls.pull, this.place);
+        },
+        shoot: (p, fine) => this.shoot(p, fine),
       },
-      shoot: (p) => this.shoot(p),
-    });
+      this.myCue(),
+    );
+    this.gutter.sync(state);
     this.resetAim();
+    this.syncCue();
     startLoop(this);
   }
 
+  /** The cue of the seat that is shooting when that seat is local (hot-seat play), else the local player's own. */
   myCue(): CueSpec {
+    const t = this.state.turn;
+    if (this.hooks.isLocal(t)) return this.cues[t];
     return this.cues[this.hooks.isLocal(0) ? 0 : 1];
+  }
+
+  /** Keep the control limits in step with whose cue is live. */
+  syncCue(): void {
+    const cue = this.myCue();
+    this.controls.setCue(cue, maxElev(cue));
   }
 
   canAct(): boolean {
@@ -94,17 +115,17 @@ export class Session {
     return !this.place || !placeError(this.state, this.place[0], this.place[1]);
   }
 
-  cmdFor(power: number): StrikeCmd {
-    return toCmd(this.aim, this.myCue(), power, this.place ?? undefined, mustCall(this.state) ? this.call : undefined);
+  cmdFor(power: number, finesse?: number): StrikeCmd {
+    return toCmd(this.aim, this.myCue(), power, this.place ?? undefined, mustCall(this.state) ? this.call : undefined, finesse);
   }
 
-  shoot(power: number): void {
+  shoot(power: number, finesse?: number): void {
     if (!this.canAct() || !this.placeOk()) return;
     if (mustCall(this.state) && this.call < 0) {
       toast("call a pocket first: tap the pocket");
       return;
     }
-    const cmd = this.cmdFor(power);
+    const cmd = this.cmdFor(power, finesse);
     this.gfx.audio.strike(power);
     this.hooks.shoot(cmd);
     this.play(cmd);
@@ -123,6 +144,7 @@ export class Session {
   play(cmd: StrikeCmd): void {
     this.replay = null;
     this.trails = new Map();
+    this.jawHits = [];
     this.log.push(cmd);
     this.sim = begin(this.state, cmd, this.cues[this.state.turn]);
     this.simCmd = cmd;
@@ -135,7 +157,10 @@ export class Session {
     this.sim = null;
     this.replay = null;
     this.simCmd = null;
+    this.jawHits = [];
     this.state = st;
+    this.gutter.sync(st);
+    this.syncCue();
     this.resetAim();
   }
 

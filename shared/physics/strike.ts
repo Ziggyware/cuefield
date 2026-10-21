@@ -28,8 +28,8 @@ export function clampInput(i: StrikeInput, cue: CueSpec): StrikeInput {
 export function strike(cueBall: Ball, raw: StrikeCmd, cue: CueSpec, wobble = 0): void {
   const inp = clampInput(raw, cue);
   
-  const tc = raw.tipChalk || 0;
-  const hc = raw.handChalk || 0;
+  const tc = Math.max(0, Math.min(1, raw.tipChalk || 0));
+  const hc = Math.max(0, Math.min(1, raw.handChalk || 0));
   
   let w = wobble * (1 - 0.3 * hc);
   w *= (1 - 0.4 * tc);
@@ -60,7 +60,7 @@ export function strike(cueBall: Ball, raw: StrikeCmd, cue: CueSpec, wobble = 0):
   const sx = hy, sy = -hx;
   const dx = hx * cosT, dy = hy * cosT, dz = -sinT;
   let ux = sy * dz, uy = -sx * dz, uz = sx * dy - sy * dx;
-  const un = Math.sqrt(ux * ux + uy * uz + uz * uz);
+  const un = Math.sqrt(ux * ux + uy * uy + uz * uz);
   ux /= un;
   uy /= un;
   uz /= un;
@@ -79,9 +79,10 @@ export function strike(cueBall: Ball, raw: StrikeCmd, cue: CueSpec, wobble = 0):
   
   cueBall.vx = (F * dx) / MASS;
   cueBall.vy = (F * dy) / MASS;
+  cueBall.z = 0;
   
   if (dz < -0.1) {
-    cueBall.vz = Math.abs((F * dz) / MASS) * 0.6;
+    cueBall.vz = Math.abs((F * dz) / MASS) * 0.24;
   } else {
     cueBall.vz = 0;
   }

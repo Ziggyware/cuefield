@@ -4,11 +4,11 @@ import type { Preview } from "../aim.ts";
 import { paletteHex } from "../prefs/look.ts";
 import { prefs } from "../prefs/store.ts";
 import type { View } from "../view.ts";
-import { cone, poly, trails, withAlpha } from "./aids.ts";
+import { chevrons, cone, dotted, ghostBalls, poly, trails, withAlpha } from "./aids.ts";
 import { banks, kitchen, labels, pots, rings } from "./aids-table.ts";
+import { drawStick, type Stick } from "./stick.ts";
 
 const GUIDE_ALPHA = 0.85;
-import { drawStick, type Stick } from "./stick.ts";
 
 export interface OverlayFrame {
   preview: Preview | null;
@@ -20,6 +20,8 @@ export interface OverlayFrame {
   pockets: { called: number; pulse: number } | null;
   cone: { x: number; y: number; angle: number; sigma: number; len: number } | null;
   trails: Map<number, [number, number][]> | null;
+  /** Recent jaw contacts from the current shot: rejection flashes. */
+  jawHits: { x: number; y: number; t: number }[];
   /** Balls in motion (spin vectors) and all balls (labels). */
   moving: Ball[] | null;
   balls: Ball[];
@@ -42,18 +44,20 @@ export class Overlay {
       this.cv.height = Hd;
     }
     const g = this.g, A = prefs.accent, rp = R * v.s;
+    this.lastView = v;
     g.setTransform(v.dpr, 0, 0, v.dpr, 0, 0);
     g.clearRect(0, 0, v.w, v.h);
 
     if (f.trails && prefs.trails) trails(g, v, f.trails, f.moving ? 0.6 : 0.35);
+    if (f.jawHits.length) this.jawFlash(f.jawHits);
     if (f.place?.kitchen != null) kitchen(g, v, f.place.kitchen, L, W, A);
     if (f.targets.length) rings(g, v, f.targets, rp);
     if (f.pockets) {
       const { called, pulse } = f.pockets;
       geo.pockets.forEach((p, i) => {
-        const [x, y] = v.toScreen(p.hx, p.hy);
+        const [x, y] = v.toScreen(p.x, p.y);
         g.beginPath();
-        g.arc(x, y, p.hr * v.s * (i === called ? 1.35 : 1.1 + 0.1 * pulse), 0, Math.PI * 2);
+        g.arc(x, y, p.mouthHalf * v.s * (i === called ? 1.35 : 1.1 + 0.1 * pulse), 0, Math.PI * 2);
         g.strokeStyle = i === called ? A : withAlpha(A, 0.45);
         g.lineWidth = i === called ? 2.5 : 1;
         g.stroke();
@@ -73,9 +77,18 @@ export class Overlay {
       }
       g.globalAlpha = GUIDE_ALPHA;
       g.lineCap = "butt";
+      const style = prefs.previewStyle;
       for (const t of p.paths) {
         const color = t.id === 0 ? "#ffffff" : t.id === p.target ? A : pal[t.id];
-        this.path(v, t.pts, color, t.id === 0 ? 1.4 : 1.6, t.id === 0 ? [] : [6, 4]);
+        if (style === "line") this.path(v, t.pts, color, t.id === 0 ? 1.4 : 1.6, t.id === 0 ? [] : [6, 4]);
+        else if (style === "dots") dotted(g, v, t.pts, color);
+        else if (style === "chevron") chevrons(g, v, t.pts, color);
+        else {
+          g.globalAlpha = GUIDE_ALPHA * 0.22;
+          this.path(v, t.pts, color, 1, []);
+          g.globalAlpha = GUIDE_ALPHA;
+          ghostBalls(g, v, t.pts, color, t.id);
+        }
         if (t.rest && t.pts.length > 1) {
           const [ex, ey] = v.toScreen(t.pts[t.pts.length - 1][0], t.pts[t.pts.length - 1][1]);
           g.beginPath();
@@ -112,6 +125,24 @@ export class Overlay {
     if (prefs.ballLabels) labels(g, v, f.balls);
     if (f.stick) drawStick(g, v, f.stick);
   }
+
+  /** Expanding ring where a ball struck a pocket jaw and was spat back out. */
+  private jawFlash(hits: { x: number; y: number; t: number }[]): void {
+    const now = performance.now(), g = this.g;
+    for (const h of hits) {
+      const age = now - h.t;
+      if (age > 900) continue;
+      const k = age / 900;
+      const [x, y] = this.lastView!.toScreen(h.x, h.y);
+      g.beginPath();
+      g.arc(x, y, 4 + k * 16, 0, Math.PI * 2);
+      g.strokeStyle = `rgba(255,214,120,${(1 - k) * 0.85})`;
+      g.lineWidth = 2 * (1 - k) + 0.5;
+      g.stroke();
+    }
+  }
+
+  private lastView: View | null = null;
 
   private path(v: View, pts: [number, number][], color: string, w: number, dash: number[]): void {
     this.g.setLineDash(dash);

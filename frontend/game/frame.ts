@@ -3,11 +3,16 @@ import { quality } from "../view.ts";
 import type { Session } from "./session.ts";
 
 /**
- * Space the stroke controls occupy beside the cloth (rails may pass under them): power bar and fine-aim strip on
- * the near side, elevation dial and tip pad stacked on the far side, each ≥ 24 px (¼ in) from the screen edge.
+ * Space beside the cloth: the power bar sits on the right, inset by about its own width; the fine-aim "intensity"
+ * strip on the left, inset by half of its width. The gutter takes the bottom strip. Left-handed play mirrors the bars.
  */
-export const NEAR = 160, FAR = 132;
-export const insets = (top: number) => ({ top, bottom: 8, left: prefs.leftHanded ? FAR : NEAR, right: prefs.leftHanded ? NEAR : FAR });
+export const POWER_GUTTER = 160, FINE_GUTTER = 126, GUTTER_H = 44;
+export const insets = (top: number) => ({
+  top,
+  bottom: GUTTER_H,
+  left: prefs.leftHanded ? POWER_GUTTER : FINE_GUTTER,
+  right: prefs.leftHanded ? FINE_GUTTER : POWER_GUTTER,
+});
 
 let prefsVersion = 0;
 onPref(() => prefsVersion++);

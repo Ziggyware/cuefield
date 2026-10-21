@@ -1,4 +1,4 @@
-import { EPS_V, G, R, SPIN_K } from "./constants.ts";
+import { AIR_DRAG, AIR_SPIN, E_TABLE, EPS_V, G, R, REST_VZ, SPIN_K } from "./constants.ts";
 import type { Ball, Cloth } from "./types.ts";
 
 export function slip(b: Ball): number {
@@ -20,19 +20,8 @@ function decaySpin(b: Ball, h: number, c: Cloth) {
   else b.wz = 0;
 }
 
-export function advance(b: Ball, h: number, c: Cloth): void {
-  let rem = h;
-  
-  if (b.z > 0 || b.vz !== 0) {
-    b.z += b.vz * rem - 0.5 * G * rem * rem;
-    b.vz -= G * rem;
-    if (b.z <= 0) {
-      b.z = 0;
-      b.vz = -b.vz * 0.5;
-      if (Math.abs(b.vz) < 0.1) b.vz = 0;
-    }
-  }
-
+/** Cloth contact: sliding then rolling, exactly integrated over the remaining step. */
+function cloth(b: Ball, rem: number, c: Cloth): number {
   for (let guard = 0; guard < 4 && rem > 0; guard++) {
     const ux = b.vx - R * b.wy, uy = b.vy + R * b.wx;
     const us = Math.sqrt(ux * ux + uy * uy);
@@ -83,4 +72,47 @@ export function advance(b: Ball, h: number, c: Cloth): void {
     decaySpin(b, rem, c);
     rem = 0;
   }
+  return rem;
+}
+
+/**
+ * Ballistic hop. Air resistance is the only horizontal force in the air, so a jumping ball keeps its line; the
+ * landing applies the slate restitution and a small tangential loss, after which the cloth model takes over.
+ */
+function flight(b: Ball, h: number): void {
+  const drag = 1 - AIR_DRAG * h, sdrag = 1 - AIR_SPIN * h;
+  b.x += b.vx * h;
+  b.y += b.vy * h;
+  b.z += b.vz * h - 0.5 * G * h * h;
+  b.vz -= G * h;
+  b.vx *= drag;
+  b.vy *= drag;
+  b.wx *= sdrag;
+  b.wy *= sdrag;
+  b.wz *= sdrag;
+  if (b.z > 0) return;
+  const impact = -b.vz;
+  b.z = 0;
+  b.vz = impact > REST_VZ ? impact * E_TABLE : 0;
+  const loss = 1 - 0.03 * Math.min(1.5, impact);
+  b.vx *= loss;
+  b.vy *= loss;
+}
+
+/**
+ * Advance one ball over h ≤ one physics step. A raised ball is integrated ballistically: no cloth friction, no
+ * rolling constraint, spin preserved apart from air drag. Only a ball resting on the slate sees sliding and rolling.
+ */
+export function advance(b: Ball, h: number, c: Cloth): void {
+  if (b.z <= 0 && b.vz <= 0) {
+    b.z = 0;
+    b.vz = 0;
+  }
+  // A raised (or just-launched) ball is integrated ballistically for the whole interval; the cloth model resumes on
+  // the next step so a landing never double-counts horizontal travel.
+  if (b.z > 0 || b.vz > 0) {
+    flight(b, h);
+    return;
+  }
+  cloth(b, h, c);
 }

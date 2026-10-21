@@ -3,6 +3,7 @@ import { mustCall } from "../../shared/game/validate.ts";
 import type { Ball } from "../../shared/physics/types.ts";
 import { R } from "../../shared/physics/constants.ts";
 import { preview } from "../aim.ts";
+import { cueLevelTotal } from "../../shared/upgrades.ts";
 import type { OverlayFrame } from "../render/overlay.ts";
 import { prefs } from "../prefs/store.ts";
 import { adapter, insets, signature } from "./frame.ts";
@@ -64,7 +65,7 @@ function coneOf(S: Session, at: [number, number]): OverlayFrame["cone"] {
 function overlayFrame(S: Session, now: number, balls: Ball[]): OverlayFrame {
   const cb = S.state.balls[0];
   const moving = S.sim || S.replay ? balls : null;
-  const f: OverlayFrame = { preview: null, stick: null, place: null, pockets: null, targets: [], cone: null, trails: S.trails, moving, balls, bankFrom: null };
+  const f: OverlayFrame = { preview: null, stick: null, place: null, pockets: null, targets: [], cone: null, trails: S.trails, moving, balls, bankFrom: null, jawHits: S.jawHits };
   if (moving) return f;
   if (S.canAct()) {
     if (S.dirty && now - S.prevAt > (S.assist === 4 ? 110 : 40)) {
@@ -74,7 +75,17 @@ function overlayFrame(S: Session, now: number, balls: Ball[]): OverlayFrame {
     }
     const at = S.place ?? [cb.x, cb.y];
     f.preview = S.prev;
-    f.stick = { x: at[0], y: at[1], angle: S.aim.angle, pull: S.controls.pull, cue: S.myCue(), ghost: false };
+    f.stick = {
+      x: at[0],
+      y: at[1],
+      angle: S.aim.angle,
+      pull: S.controls.pull,
+      cue: S.myCue(),
+      ghost: false,
+      elev: S.aim.elev,
+      chalk: S.aim.tipChalk,
+      pips: cueLevelTotal(S.myCue()),
+    };
     if (S.assist > 1) f.cone = coneOf(S, at);
     if (S.place) f.place = { x: S.place[0], y: S.place[1], ok: S.placeOk(), kitchen: S.state.bih === 1 ? -S.spec.L / 4 : null };
     if (S.assist > 1 && S.state.broken) {
@@ -86,7 +97,17 @@ function overlayFrame(S: Session, now: number, balls: Ball[]): OverlayFrame {
     if (mustCall(S.state)) f.pockets = { called: S.call, pulse: 0.5 + 0.5 * Math.sin(now / 180) };
   } else if (S.remoteAim && S.state.winner < 0 && !prefs.hideOpponentCue) {
     const at = S.remoteAim.place ?? [cb.x, cb.y];
-    f.stick = { x: at[0], y: at[1], angle: S.remoteAim.a.angle, pull: S.remoteAim.pull, cue: S.cues[S.state.turn], ghost: true };
+    f.stick = {
+      x: at[0],
+      y: at[1],
+      angle: S.remoteAim.a.angle,
+      pull: S.remoteAim.pull,
+      cue: S.cues[S.state.turn],
+      ghost: true,
+      elev: S.remoteAim.a.elev,
+      chalk: S.remoteAim.a.tipChalk,
+      pips: cueLevelTotal(S.cues[S.state.turn]),
+    };
   }
   return f;
 }

@@ -30,7 +30,9 @@ export function bindInput(S: Session, el: HTMLElement): () => void {
     const [x, y] = world(e);
     const [cx, cy] = cue();
     if (mustCall(S.state)) {
-      const k = S.geo.pockets.findIndex((p) => Math.hypot(p.hx - x, p.hy - y) < p.hr * 1.8);
+      const k = S.geo.pockets.findIndex(
+        (p) => Math.hypot(p.x - x, p.y - y) < p.mouthHalf * 2.4 + R || Math.hypot(p.hx - x, p.hy - y) < p.hr * 2.2,
+      );
       if (k >= 0) {
         S.call = k;
         changed();
