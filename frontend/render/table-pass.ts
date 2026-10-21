@@ -27,7 +27,10 @@ export function tablePass(
   gl.uniform4fv(t.u("uPk"), geo.pockets.flatMap((p) => [p.x, p.y, p.dx, p.dy]));
   gl.uniform1fv(t.u("uHalf"), geo.pockets.map((p) => p.half));
   gl.uniform1fv(t.u("uTaper"), geo.pockets.map((p) => p.taper));
+  gl.uniform1fv(t.u("uMouthHalf"), geo.pockets.map((p) => p.mouthHalf));
+  gl.uniform1fv(t.u("uFunnel"), geo.pockets.map((p) => p.funnel));
   gl.uniform3fv(t.u("uHole"), geo.pockets.flatMap((p) => [p.hx, p.hy, p.hr]));
+  gl.uniform3fv(t.u("uJaw"), geo.pockets.flatMap((p) => p.jaws.flatMap((j) => [j.x, j.y, j.r])));
   lamps(t);
   for (let i = 0; i < 4; i++) gl.disableVertexAttribArray(i);
   attrib(gl, t.a("aP"), buf, 2, 2, 0, 0);

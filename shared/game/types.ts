@@ -28,6 +28,8 @@ export interface StrikeCmd extends StrikeInput {
   call?: number;
   tipChalk?: number;
   handChalk?: number;
+  /** Heavy-strike timing game result, 0 (shanked) … 1000 (perfect contact). Omitted for bot and practice strokes. */
+  finesse?: number;
 }
 
 export type Cmd = StrikeCmd | { k: "timeout" } | { k: "concede" };

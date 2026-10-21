@@ -95,9 +95,9 @@ export function rings(g: G, v: View, pts: [number, number][], rp: number): void 
 /** Pockets the guide predicts a ball will drop into. */
 export function pots(g: G, v: View, geo: Geometry, ks: number[], color: string): void {
   for (const k of ks) {
-    const h = geo.pockets[k], [x, y] = v.toScreen(h.hx, h.hy);
+    const h = geo.pockets[k], [x, y] = v.toScreen(h.x, h.y);
     g.beginPath();
-    g.arc(x, y, h.hr * v.s * 1.15, 0, Math.PI * 2);
+    g.arc(x, y, h.mouthHalf * v.s * 1.2, 0, Math.PI * 2);
     g.strokeStyle = color;
     g.lineWidth = 3;
     g.stroke();

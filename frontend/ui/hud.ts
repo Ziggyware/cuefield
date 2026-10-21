@@ -1,4 +1,6 @@
+import type { CueSpec } from "../../shared/catalog.ts";
 import type { GameState } from "../../shared/game/types.ts";
+import { cueChips } from "../../shared/upgrades.ts";
 import { coins, h } from "../dom.ts";
 import { ballDot, ownBalls } from "./hud-balls.ts";
 import { rulesOf } from "../../shared/catalog.ts";
@@ -9,6 +11,8 @@ import { type SayEvents, sayPanel } from "./say.ts";
 export interface Seat {
   name: string;
   rating?: number;
+  /** Effective cue (upgrades included). Its badges tell the table what the player has enabled. */
+  cue?: CueSpec;
 }
 
 export interface HudEvents extends SayEvents {
@@ -24,6 +28,12 @@ export class Hud {
   cards: HTMLElement[];
   clocks: HTMLElement[];
   balls: HTMLElement[];
+  /** Left dock, immediately right of seat 0: the chalk selections live here. */
+  chalk: HTMLElement;
+  /** Right dock, immediately left of seat 1: spin and massé live here. */
+  cue: HTMLElement;
+  private seats: [Seat, Seat];
+  private ups: HTMLElement[];
   bubbles: (HTMLElement | null)[] = [null, null];
   mid: HTMLElement;
   info: HTMLElement;
@@ -37,13 +47,16 @@ export class Hud {
   run = 0;
 
   constructor(seats: [Seat, Seat], stake: string, ev: HudEvents, unlocks: string[]) {
+    this.seats = seats;
     this.clocks = [h("i", { class: "clock" }), h("i", { class: "clock" })];
     this.balls = [h("div", { class: "balls" }), h("div", { class: "balls" })];
+    this.ups = [h("div", { class: "ups" }), h("div", { class: "ups" })];
     this.cards = seats.map((s, i) =>
       h(
         "div",
         { class: "pc" },
         h("div", { class: "row" }, h("span", { text: s.name }), s.rating ? h("span", { class: "k", text: s.rating }) : null),
+        this.ups[i],
         this.balls[i],
         this.clocks[i],
       )
@@ -73,7 +86,9 @@ export class Hud {
       this.info,
       h("div", { class: "row" }, ...(ev.extra ?? []).map((x) => h("button", { text: x.text, onclick: x.fn })), ev.noSay ? null : emo, quit),
     );
-    this.root = h("div", { class: "hud" }, this.cards[0], this.mid, this.cards[1]);
+    this.chalk = h("div", { class: "dock chalk-dock", title: "chalk selections" });
+    this.cue = h("div", { class: "dock cue-dock", title: "spin and massé" });
+    this.root = h("div", { class: "hud" }, this.cards[0], this.chalk, this.mid, this.cue, this.cards[1]);
     if (seats[1].name === "") this.cards[1].style.visibility = "hidden";
   }
 
@@ -89,6 +104,22 @@ export class Hud {
       if (this.balls[i].dataset.k !== key) {
         this.balls[i].dataset.k = key;
         this.balls[i].replaceChildren(...ids.map(ballDot));
+      }
+      const cue = this.seats[i].cue;
+      const ck = cue ? cue.id + "|" + cue.speed + "," + cue.spin + "," + cue.elev + "," + cue.endMass + "," + cue.guide + "," + cue.mass + "," + cue.wobble + "," + cue.luck + "," + cue.finish : "";
+      if (this.ups[i].dataset.k !== ck) {
+        this.ups[i].dataset.k = ck;
+        const chips = cue ? cueChips(cue) : [];
+        this.ups[i].replaceChildren(
+          ...chips.map((c) =>
+            h("i", {
+              class: `up up-${c.id}`,
+              title: `${c.name} ${c.level}/${5}`,
+              text: `${c.short}${c.level}`,
+              style: c.id === "color" && cue ? `background:${cue.ring};color:#08090a` : undefined,
+            }),
+          ),
+        );
       }
     }
     const text = (this.run >= 2 && st.winner < 0 ? `run ${this.run} · ` : "") + statusText(st);

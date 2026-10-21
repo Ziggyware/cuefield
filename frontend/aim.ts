@@ -13,7 +13,7 @@ export interface Aim {
   handChalk: number;
 }
 
-export function toCmd(a: Aim, cue: CueSpec, power: number, place?: [number, number], call?: number): StrikeCmd {
+export function toCmd(a: Aim, cue: CueSpec, power: number, place?: [number, number], call?: number, finesse?: number): StrikeCmd {
   const r = Math.hypot(a.tx, a.ty), k = r > 1 ? 1 / r : 1;
   const cmd: StrikeCmd = {
     k: "strike",
@@ -28,6 +28,7 @@ export function toCmd(a: Aim, cue: CueSpec, power: number, place?: [number, numb
   };
   if (place) cmd.place = [Math.round(place[0] * 1e5) / 1e5, Math.round(place[1] * 1e5) / 1e5];
   if (call !== undefined) cmd.call = call;
+  if (finesse !== undefined) cmd.finesse = Math.max(0, Math.min(1000, Math.round(finesse)));
   return cmd;
 }
 

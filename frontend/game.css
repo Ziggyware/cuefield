@@ -4,7 +4,7 @@
   right: 0;
   top: 0;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: stretch;
   gap: 8px;
   padding: max(6px,env(safe-area-inset-top)) 8px 6px;
@@ -44,8 +44,104 @@
   border-radius: 50%;
   display: block;
 }
+.dock {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: auto;
+  align-self: center;
+  min-width: 0;
+}
+.chalk-set,
+.cue-set {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 3px 5px;
+}
+.dock-cap {
+  font-size: 9px;
+  letter-spacing: .08em;
+  color: var(--ink);
+  opacity: .65;
+}
+.chalk-chip {
+  height: 26px;
+  min-width: 46px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: var(--raise);
+  color: var(--ink);
+}
+.cue-cell {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.cue-val {
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  opacity: .8;
+  min-width: 26px;
+}
+.cue-dock .spin {
+  width: 38px;
+  height: 38px;
+  border-width: 1px;
+}
+.cue-dock .spin > i {
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+}
+.cue-dock .elev {
+  width: 44px;
+  height: 24px;
+  border-width: 1px;
+  padding: 1px 2px;
+}
+.cue-dock .elev > i {
+  left: 3px;
+  bottom: 3px;
+  width: 30px;
+  height: 2px;
+}
+.cue-dock .elev .v {
+  font-size: 9px;
+}
+.ups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-height: 0;
+}
+.ups:empty {
+  display: none;
+}
+.up {
+  font-style: normal;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  padding: 0 3px;
+  line-height: 11px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--fg) 22%, transparent);
+  color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--fg) 45%, transparent);
+  white-space: nowrap;
+}
+.up-color {
+  color: #08090a;
+}
 .mid {
   display: flex;
+  margin: 0 auto;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -69,6 +165,10 @@
   pointer-events: none;
   display: flex;
   gap: 14px;
+}
+/* The stroke docks are live controls, even though the overlay root lets table drags through. */
+.ctl.dock {
+  pointer-events: auto;
 }
 .bottom-tray {
   position: absolute;
@@ -144,6 +244,8 @@
   background: color-mix(in srgb, var(--fg) 16%, transparent);
   position: relative;
   touch-action: none;
+  /* A pull that reaches the bar end from a press point near it must not paint outside the bar. */
+  overflow: hidden;
 }
 .power > i {
   position: absolute;
@@ -151,8 +253,30 @@
   right: 0;
   top: 0;
   background: var(--fg);
+  transition: none;
+}
+.power > b.origin {
+  position: absolute;
+  left: -5px;
+  right: -5px;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--accent, var(--fg));
+  opacity: 0;
+  box-shadow: 0 0 6px var(--fg);
+}
+.fine > i {
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--accent, var(--fg));
+  opacity: .85;
+  top: 50%;
 }
 .fine {
+  position: relative;
   width: 44px;
   height: min(var(--avail, 240px), 400px);
   border: 2px solid color-mix(in srgb, var(--fg) 70%, transparent);
@@ -183,6 +307,13 @@
   inset: 0;
   border-radius: 50%;
   border: 1px dashed rgba(8,9,10,.45);
+}
+.spin > u.range {
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  border: 1px dotted rgba(8,9,10,.35);
+  pointer-events: none;
 }
 .elev {
   width: 92px;
@@ -312,4 +443,214 @@ body.wide.port #ui {
   min-height: 48px;
   padding: 10px 22px;
   font-weight: 600;
+}
+
+.hit.slim {
+  padding: 6px;
+  margin: -6px;
+}
+
+/* Pocketed-ball gutter along the bottom edge. */
+.gutter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--gs, 22px) + 12px);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 8px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 55%, transparent), var(--bg) 70%);
+  border-top: 1px solid var(--line);
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 4;
+}
+.g-label {
+  font-size: 8px;
+  letter-spacing: .12em;
+  color: var(--ink);
+  opacity: .55;
+  width: 52px;
+  flex: none;
+}
+.g-slots {
+  flex: 1;
+}
+.g-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 0;
+}
+.g-ball {
+  position: absolute;
+  left: calc(-1 * var(--gs, 22px) / 2);
+  top: calc(-1 * var(--gs, 22px) / 2);
+  width: var(--gs, 22px);
+  height: var(--gs, 22px);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: inset -2px -3px 4px rgba(0,0,0,.45), inset 2px 2px 3px rgba(255,255,255,.35), 0 1px 2px rgba(0,0,0,.6);
+  will-change: transform, opacity;
+}
+.g-num {
+  font-size: calc(var(--gs, 22px) * .46);
+  line-height: 1;
+  color: #0b0c0a;
+  background: rgba(255,255,255,.86);
+  border-radius: 50%;
+  width: 58%;
+  height: 58%;
+  display: grid;
+  place-items: center;
+}
+.g-ball .g-num:empty {
+  display: none;
+}
+
+/* Skill games. */
+.mg-host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 120;
+}
+.mg-host > .mg {
+  pointer-events: auto;
+}
+.chalk-game.mg {
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(460px, 92vw);
+  max-height: 88vh;
+  overflow: auto;
+  gap: 10px;
+}
+.mg-intro {
+  font-size: 11px;
+  opacity: .8;
+  margin-top: 3px;
+  line-height: 1.3;
+}
+.mg-help {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 10px;
+  line-height: 1.45;
+  opacity: .75;
+  text-align: left;
+  width: 100%;
+}
+.mg-phase {
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: var(--accent, var(--fg));
+  min-height: 14px;
+  text-align: center;
+}
+.mg-result {
+  font-size: 12px;
+  font-weight: 600;
+  min-height: 16px;
+  text-align: center;
+  width: 100%;
+}
+.mg-result.good {
+  color: var(--fg);
+}
+.mg-result.bad {
+  color: var(--bad);
+}
+.mg-bar {
+  height: 36px;
+  width: 100%;
+  overflow: hidden;
+}
+.mg-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(125, 255, 58, .18);
+  border-left: 1px solid rgba(125, 255, 58, .8);
+  border-right: 1px solid rgba(125, 255, 58, .8);
+}
+.mg-zone.good {
+  background: rgba(125, 255, 58, .22);
+}
+.mg-bad {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(135deg, rgba(255, 60, 40, .35) 0 5px, rgba(255, 60, 40, .12) 5px 10px);
+}
+.mg-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, .05);
+  pointer-events: none;
+}
+.mg-needle {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  margin-left: -1.5px;
+  background: var(--fg);
+  box-shadow: 0 0 8px var(--fg);
+  pointer-events: none;
+}
+.mg-meters {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+.mg-meter {
+  flex: 1;
+  position: relative;
+  height: 16px;
+  background: #111;
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.mg-meter > i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: color-mix(in srgb, var(--accent, var(--fg)) 60%, transparent);
+}
+.mg-meter > i.cl {
+  background: color-mix(in srgb, var(--bad) 60%, transparent);
+}
+.mg-meter > span {
+  position: absolute;
+  inset: 0;
+  font-size: 8px;
+  letter-spacing: .1em;
+  display: grid;
+  place-items: center;
+  color: var(--fg);
+  mix-blend-mode: difference;
+}
+.mg-cancel {
+  align-self: center;
+  font-size: 10px;
+}
+@media (max-width: 700px) {
+  .dock-cap { display: none; }
+  .cue-val { display: none; }
+  .cue-dock .spin { width: 32px; height: 32px; }
+  .cue-dock .elev { width: 38px; height: 22px; }
+  .cue-dock .elev > i { width: 24px; }
+  .chalk-chip { min-width: 38px; padding: 1px 4px; font-size: 9px; }
+  .g-label { width: 42px; font-size: 7px; }
 }

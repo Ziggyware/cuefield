@@ -49,6 +49,9 @@ export function mountTable(
   setWide(true);
   const g = graphics();
   const session = new Session(state, cues, g, hooks, opts.assist);
+  // The HUD reads the effective cue so each player's upgrade badges are visible to the whole table.
+  seats[0].cue ??= cues[0];
+  seats[1].cue ??= cues[1];
   const extra = [
     { text: "−", fn: () => session.cycleZoom(-1) },
     { text: "+", fn: () => session.cycleZoom(1) },
@@ -58,8 +61,11 @@ export function mountTable(
   const hud = new Hud(seats, stake, { ...ev, extra }, opts.unlocks ?? []);
   const recap = h("div", { class: "round-recap", role: "status", "aria-live": "polite", text: "Rack ready · Make your opening play" });
   const commentary = h("div", { class: "commentary" }, recap, narrationButton());
-  const root = h("div", { style: "position:absolute;inset:0;pointer-events:none" }, hud.root, session.controls.root, commentary);
+  session.controls.attach(hud.chalk, hud.cue);
+  const root = h("div", { style: "position:absolute;inset:0;pointer-events:none" }, hud.root, session.controls.root, session.gutter.root, commentary);
   ui.replaceChildren(root);
+  // The gutter measures its label from layout, so re-slot after the first paint.
+  requestAnimationFrame(() => session.gutter.layout());
   const unbind = bindInput(session, document.getElementById("ov")!);
   let mine = false, lastTick = 0, lastAvail = 0, seenShot = session.state.shot, ended = session.state.winner >= 0;
   const title = document.title;
@@ -97,11 +103,14 @@ export function mountTable(
     lastTick = sec;
   };
   const timer = setInterval(tick, 100);
+  const relayout = () => session.gutter.layout();
+  addEventListener("resize", relayout);
   return {
     session,
     hud,
     destroy() {
       setWide(false);
+      removeEventListener("resize", relayout);
       session.stop();
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
       requestAnimationFrame(() => g.renderer.clear());

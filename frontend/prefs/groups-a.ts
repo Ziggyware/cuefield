@@ -6,6 +6,7 @@ export const GROUPS_A: Group[] = [
     defs: [
       { k: "botLevel", label: "bot difficulty", note: "Default opponent for vs bot.", c: { kind: "select", options: [[0, "easy"], [1, "club"], [2, "pro"]] } },
       { k: "strokeConfirm", label: "stroke lock", note: "Releasing the power bar arms the shot; a second tap strikes. Ends misfires.", c: T },
+      { k: "heavySkill", label: "perfect strike", note: "Above 80% power, a two-stop timing game decides how cleanly the cue lands. Beat it to cut stroke wobble.", c: T },
       { k: "turnAlert", label: "turn alert", note: "Chime, vibration and a flashing tab title when the table is yours.", c: T },
       { k: "haptics", label: "contact haptics", note: "Vibration scaled by each collision impulse.", c: T },
       { k: "volume", label: "volume", note: "", c: { kind: "range", min: 0, max: 1, step: 0.05, fmt: pct } },
@@ -43,6 +44,12 @@ export const GROUPS_A: Group[] = [
         c: T,
       },
       { k: "ballLabels", label: "ball labels", note: "Number above every ball.", c: T },
+      {
+        k: "previewStyle",
+        label: "preview method",
+        note: "Line, dotted path, chevrons, or rolling ghost balls along the predicted route.",
+        c: { kind: "select", options: [["line", "line"], ["dots", "dots"], ["chevron", "chevrons"], ["ball", "ghost balls"]] },
+      },
     ],
   },
   {

@@ -48,7 +48,7 @@ export function preview(st: GameState, cmd: StrikeCmd, cue: CueSpec, level: Assi
         if (e.a !== 0 && trace.has(e.a)) out.pots.push(e.p);
         continue;
       }
-      if (!contact && (e.k === "rail" ? e.a === 0 : e.a === 0 || e.b === 0)) {
+      if (!contact && (e.k === "ball" ? e.a === 0 || e.b === 0 : (e.k === "rail" || e.k === "jaw") && e.a === 0)) {
         contact = true;
         const t0 = trace.get(0)!, last = t0.pts[t0.pts.length - 1];
         if (t0.len < t0.cap) {

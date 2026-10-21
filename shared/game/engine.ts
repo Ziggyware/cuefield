@@ -40,23 +40,27 @@ export function newGame(mode: Mode, table: string, seed: number, breaker: 0 | 1)
   };
 }
 
-const clone = (b: Ball): Ball => ({ ...b });
-
 /**
  * Stroke error for this shot as tan(φ/2): Irwin–Hall sum of four uniforms (unit variance, + × √ only) from the rack seed
  * and shot number, scaled by the cue's wobble and by power (a soft stroke strays less).
  */
+const clone = (b: Ball): Ball => ({ ...b });
+
 export function wobbleOf(st: GameState, c: StrikeCmd, cue: CueSpec): number {
   if (!cue.wobble) return 0;
   const r = rng(((st.seed ?? 0) ^ Math.imul(st.shot + 1, 0x9e3779b1)) >>> 0);
   const z = (r() + r() + r() + r() - 2) * Math.sqrt(3);
   const p = Math.max(1, Math.min(1000, Math.round(c.power))) / 1000;
-  return 0.5 * z * cue.wobble * (0.3 + 0.7 * p);
+  /** The timing game is the only input that can calm or spoil a hard stroke: perfect contact ≈ 0.2× wobble. */
+  const fine = c.finesse === undefined ? NaN : Math.max(0, Math.min(1000, Math.round(c.finesse))) / 1000;
+  const calm = fine === fine ? 1.5 - 1.3 * fine : 1;
+  return 0.5 * z * cue.wobble * (0.3 + 0.7 * p) * calm;
 }
 
 /** Copies the rack, applies ball-in-hand placement and the cue impulse; the caller steps the returned Sim. exact: no stroke error (aim preview). */
 export function begin(st: GameState, c: StrikeCmd, cue: CueSpec, exact = false): Sim {
-  const balls = st.balls.map(clone);
+  // States stored before jump physics have no z/vz; treat missing heights as resting on the slate.
+  const balls = st.balls.map((b) => ({ ...b, z: b.z || 0, vz: b.vz || 0 }));
   const cb = balls[0];
   if (c.place) {
     cb.x = c.place[0];

@@ -14,7 +14,8 @@ Overhead 2D pool, 8-ball and 9-ball, with online play, a bot, cues and tables bo
   - Entry fees are escrowed atomically when a match is created. Shot-clock timeouts and forfeits are applied lazily on each poll.
 - `frontend/` — vanilla TS client.
   - WebGL2 renderer: two-lamp inverse-square lighting, GGX ball specular, analytic contact shadows, spinning ball orientation.
-  - Aim guide built from the real simulator.
+  - Aim guide built from the real simulator, with line, dotted, chevron and ghost-ball preview methods.
+  - Stroke controls: power grows from the press point (right dock), fine aim on the left, chalk and spin/massé in the HUD. Above 80% power an optional two-stop perfect-strike game sets the stroke error.
   - WebRTC data channel for low-latency strokes, live aim and emotes. Signalling and a relay fallback run through the match mailbox.
   - Bot opponent runs in a Web Worker.
 
@@ -27,10 +28,12 @@ Overhead 2D pool, 8-ball and 9-ball, with online play, a bot, cues and tables bo
   - Spin about the vertical axis decays at `(5/2R)μsp g`.
 - Cue strike: point impulse along an elevated cue axis.
   - Tip offset produces follow, draw and english.
-  - Elevation produces massé and swerve.
+  - Elevation produces massé, swerve and a jump: the ball becomes ballistic, keeps its line through the air, lands with slate restitution and can clear an object ball.
   - Alciatore squirt depends on the shaft's end mass.
 - Ball–ball collisions: restitution plus Coulomb throw on contact slip, so both cut-induced and spin-induced throw occur.
+  - Contact is three-dimensional, so a raised ball clears or lands on another; the vertical part of the friction impulse is only exchanged when a ball is airborne.
 - Cushions: impulse at nose height, with friction acting on contact-point slip.
+- Pockets: each mouth is a pair of rounded jaw tips with a tapering funnel. A ball must pass the jaw line and reach the drop circle, so cuts that clip a facing rattle out instead of being swallowed.
 - Collisions are found by continuous detection inside 0.5 ms steps.
 
 ## Setup
@@ -50,7 +53,7 @@ TURN (optional): set `TURN_URL` (comma-separated), `TURN_USER` and `TURN_PASS`. 
 Requires Node 22 with its built-in SQLite module:
 
 ```sh
-npx --yes tsx --test tests/rewards.test.ts
+npx --yes tsx --test tests/rewards.test.ts tests/physics.test.ts
 npx --yes -p typescript tsc --noEmit --allowImportingTsExtensions --moduleResolution bundler --module esnext --target es2022 --lib es2022,dom,dom.iterable frontend/main.ts
 ```
 

@@ -14,7 +14,7 @@ import { BALL_FS, BALL_VS, SHADOW_FS } from "./shaders-ball.ts";
 
 const LAMP_H = 1.0;
 const CONTRAST = 1.08;
-const STRIDE = 15;
+const STRIDE = 16;
 
 export class Renderer {
   gl: WebGL2RenderingContext;
@@ -98,6 +98,7 @@ export class Renderer {
       this.data[o + 12] = c[0];
       this.data[o + 13] = c[1];
       this.data[o + 14] = c[2];
+      this.data[o + 15] = b.z;
       
       n++;
     }
@@ -111,10 +112,11 @@ export class Renderer {
       gl.uniform1f(p.u("uR"), R);
       gl.uniform1f(p.u("uScale"), scale);
       gl.uniform1f(p.u("uPx"), px);
+      gl.uniform1f(p.u("uLift"), scale > 1 ? 0 : 1);
       this.lamps(p);
       for (let i = 0; i < 8; i++) gl.disableVertexAttribArray(i);
       attrib(gl, p.a("aQ"), this.quad, 2, 2, 0, 0);
-      for (const [a, sz, off] of [["aC", 2, 0], ["aId", 1, 2], ["aR0", 3, 3], ["aR1", 3, 6], ["aR2", 3, 9], ["aCol", 3, 12]] as const) {
+      for (const [a, sz, off] of [["aC", 2, 0], ["aId", 1, 2], ["aR0", 3, 3], ["aR1", 3, 6], ["aR2", 3, 9], ["aCol", 3, 12], ["aZ", 1, 15]] as const) {
         attrib(gl, p.a(a), this.inst, sz, STRIDE, off, 1);
       }
     };

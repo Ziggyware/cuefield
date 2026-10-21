@@ -44,7 +44,7 @@ export function plan(st: GameState, cue: CueSpec, level: Level, rand: () => numb
   for (const id of legalTargets(st)) {
     const b = st.balls[id];
     geo.pockets.forEach((p, k) => {
-      const px = p.x + p.dx * p.half * 0.3, py = p.y + p.dy * p.half * 0.3;
+      const px = p.hx - p.dx * p.hr * 0.35, py = p.hy - p.dy * p.hr * 0.35;
       const ux = px - b.x, uy = py - b.y, ul = Math.hypot(ux, uy);
       const gx = b.x - (ux / ul) * 2 * R, gy = b.y - (uy / ul) * 2 * R;
       let place: [number, number] | undefined;

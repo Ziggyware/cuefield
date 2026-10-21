@@ -45,6 +45,17 @@ export function advanceShot(S: Session, dt: number): Ball[] {
   const fresh = s.events.slice(S.heard);
   S.gfx.audio.events(fresh);
   haptics(fresh);
+  const now = performance.now();
+  for (const e of fresh) {
+    if (e.k === "pocket") {
+      const p = S.geo.pockets[e.p];
+      const [x] = S.view.toScreen(p.hx, p.hy);
+      S.gutter.pocket(e.a, x);
+    } else if (e.k === "jaw") {
+      S.jawHits.push({ x: e.x, y: e.y, t: now });
+    }
+  }
+  if (S.jawHits.length > 8) S.jawHits.splice(0, S.jawHits.length - 8);
   S.heard = s.events.length;
   record(S, s.balls);
   if (!s.done) return s.balls;
@@ -53,6 +64,8 @@ export function advanceShot(S: Session, dt: number): Ball[] {
   S.lastShot = { pre, cmd, cue: S.cues[pre.turn] };
   S.sim = null;
   S.state = next;
+  S.gutter.sync(next);
+  S.syncCue();
   S.resetAim();
   S.hooks.settled(next, cmd);
   if (prefs.instantReplay === "auto" && next.winner < 0 && !S.sim) S.startReplay();

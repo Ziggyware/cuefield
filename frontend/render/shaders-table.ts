@@ -4,7 +4,7 @@ export const TABLE_FS = COMMON + `
 in vec2 vP;out vec4 o;
 uniform vec2 uH;uniform float uRail,uCush,uPx;
 uniform vec3 uCloth,uRailC,uSight;
-uniform vec4 uPk[6];uniform float uHalf[6];uniform float uTaper[6];uniform vec3 uHole[6];
+uniform vec4 uPk[6];uniform float uHalf[6];uniform float uTaper[6];uniform float uMouthHalf[6];uniform float uFunnel[6];uniform vec3 uHole[6];uniform vec3 uJaw[12];
 const float FLOOR=.76;
 
 float hash(vec2 p) {
@@ -29,12 +29,16 @@ void main(){
   vec2 p=vP,a=abs(p);
   float outer=box(p,uH+uRail);
   if(outer>uPx){o=vec4(srgb(grade(floorCol(p))),1.0);return;}
-  float hole=1e9,throat=1e9;
+  float hole=1e9,throat=1e9,jaw=1e9;
   for(int i=0;i<6;i++){
     vec2 r=p-uPk[i].xy;float s=dot(r,uPk[i].zw);float lat=abs(r.x*uPk[i].w-r.y*uPk[i].z);
-    throat=min(throat,max(lat-(uHalf[i]-max(s,0.)*uTaper[i]),-s));
+    float sm=s+uFunnel[i];
+    float hw=sm<0.?uMouthHalf[i]:mix(uMouthHalf[i],uHalf[i],clamp(sm/max(uFunnel[i],1e-4),0.,1.));
+    hw=sm>uFunnel[i]?uHalf[i]-max(sm-uFunnel[i],0.)*uTaper[i]:hw;
+    throat=min(throat,max(lat-hw,-sm));
     hole=min(hole,length(p-uHole[i].xy)-uHole[i].z);
   }
+  for(int i=0;i<12;i++) jaw=min(jaw,length(p-uJaw[i].xy)-uJaw[i].z);
   float play=box(p,uH),cush=box(p,uH+uCush);
   vec3 cloth=lin(uCloth),alb;
   
@@ -63,15 +67,24 @@ void main(){
     vec2 dd=abs(endRail?sp.yx:sp);float dm=dd.x/.011+dd.y/.0055-1.;
     float sightMask=smoothstep(-uPx/.0055,uPx/.0055,dm);
     float rim=1.-smoothstep(.012-uPx,.012+uPx,hole);
+    float lip=1.-smoothstep(0.,.014,jaw);
     
     vec3 woodCol = lin(uRailC) * mix(0.96, 1.04, hash(p * 200.0));
     alb=mix(lin(uSight)*1.1, woodCol, sightMask);
     alb=mix(alb,vec3(.018,.011,.007),rim);
+    // Leather pocket liner wraps the jaw and blends into the wood.
+    alb=mix(alb,vec3(.055,.038,.027)*(0.8+0.4*hash(p*420.0)),lip*.85);
     n_irr=mix(vec3(0.0,0.0,1.0),n_irr,max(sightMask,rim)); 
   }
   
+  // Dark funnel inside the throat, independently of which surface the sample landed on.
+  float funnel=1.-smoothstep(-.030,.0,throat);
+  alb=mix(alb,vec3(.026,.020,.016),funnel*.9);
   vec3 col=alb*irr(p_irr,n_irr);
   vec3 hc=cloth*.02*smoothstep(-uHalf[0],0.,hole)+vec3(.002);
   col=mix(hc,col,smoothstep(-uPx,uPx,hole));
+  // Thin highlight on the pocket liner just outside the hole.
+  float ring=1.-smoothstep(0.,uPx*2.2,abs(hole-.0045));
+  col=mix(col,vec3(.16,.11,.075),ring*.45);
   o=vec4(srgb(grade(col)),1.0);
 }`;

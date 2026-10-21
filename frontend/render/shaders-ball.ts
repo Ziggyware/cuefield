@@ -1,11 +1,15 @@
 import { COMMON } from "./shaders.ts";
 
 export const BALL_VS = `#version 300 es
-in vec2 aQ;in vec2 aC;in float aId;in vec3 aR0;in vec3 aR1;in vec3 aR2;in vec3 aCol;
-uniform mat3 uClip;uniform float uR,uScale;
-out vec2 vQ;out vec2 vC;flat out int vId;out vec3 r0;out vec3 r1;out vec3 r2;out vec3 vCol;
-void main(){vQ=aQ*uScale;vC=aC;vId=int(aId+.5);r0=aR0;r1=aR1;r2=aR2;vCol=aCol;
-gl_Position=vec4((uClip*vec3(aC+vQ*uR,1.0)).xy,0.0,1.0);}`;
+in vec2 aQ;in vec2 aC;in float aId;in vec3 aR0;in vec3 aR1;in vec3 aR2;in vec3 aCol;in float aZ;
+uniform mat3 uClip;uniform float uR,uScale,uLift;
+out vec2 vQ;out vec2 vC;flat out int vId;out vec3 r0;out vec3 r1;out vec3 r2;out vec3 vCol;out float vZ;
+void main(){
+  vZ=aZ;
+  float lift=1.0+aZ*2.6*uLift;
+  vQ=aQ*uScale*lift;vC=aC;vId=int(aId+.5);r0=aR0;r1=aR1;r2=aR2;vCol=aCol;
+  gl_Position=vec4((uClip*vec3(aC+vQ*uR,1.0)).xy,0.0,1.0);
+}`;
 
 export const BALL_FS = COMMON + `
 in vec2 vQ;in vec2 vC;flat in int vId;in vec3 r0;in vec3 r1;in vec3 r2;in vec3 vCol;out vec4 o;
@@ -46,15 +50,20 @@ void main(){
 }`;
 
 export const SHADOW_FS = COMMON + `
-in vec2 vQ;in vec2 vC;out vec4 o;
+in vec2 vQ;in vec2 vC;in float vZ;out vec4 o;
 uniform float uR;
 void main(){
   vec2 p=vC+vQ*uR;float f=1.;
+  float h=max(vZ,0.0);
   for(int i=0;i<2;i++){
-    vec3 L=uLamp[i];float k=uR/max(L.z-uR,1e-5);vec2 sc=vC+(vC-L.xy)*k;float sr=uR*L.z/max(L.z-uR,1e-5);
-    float pen=.14*uR/max(L.z-uR,1e-5)*L.z+.004;
-    f-=.40*(1.-smoothstep(sr-pen,sr+pen,length(p-sc)));
+    vec3 L=uLamp[i];
+    float s=L.z/max(L.z-h,1e-3);
+    vec2 sc=L.xy+(vC-L.xy)*s;
+    float sr=uR*s;
+    float pen=.14*uR/max(L.z-uR,1e-5)*s+.004;
+    float fade=1.0/(1.0+h*7.0);
+    f-=.40*fade*(1.-smoothstep(sr-pen,sr+pen,length(p-sc)));
   }
-  float c=length(p-vC)/uR;f-=.22*exp(-c*c*2.5);
+  float c=length(p-vC)/uR;f-=.22*exp(-c*c*2.5)/(1.0+h*9.0);
   o=vec4(vec3(max(f,0.)),1.0);
 }`;
