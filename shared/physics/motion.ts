@@ -1,7 +1,6 @@
 import { EPS_V, G, R, SPIN_K } from "./constants.ts";
 import type { Ball, Cloth } from "./types.ts";
 
-/** Contact-point slip u = v + ω × (−R ẑ). */
 export function slip(b: Ball): number {
   const ux = b.vx - R * b.wy, uy = b.vy + R * b.wx;
   return Math.sqrt(ux * ux + uy * uy);
@@ -10,6 +9,7 @@ export function slip(b: Ball): number {
 export function moving(b: Ball): boolean {
   if (!b.on) return false;
   if (b.vx * b.vx + b.vy * b.vy > EPS_V * EPS_V) return true;
+  if (b.z > 0 || Math.abs(b.vz) > EPS_V) return true;
   return slip(b) > EPS_V;
 }
 
@@ -20,13 +20,19 @@ function decaySpin(b: Ball, h: number, c: Cloth) {
   else b.wz = 0;
 }
 
-/**
- * Exact piecewise motion under Coulomb cloth friction.
- * Sliding: u̇ = −(7/2) μs g û with fixed direction, so the phase lasts |u|/(3.5 μs g).
- * Rolling: constant deceleration μr g, ω locked to v.
- */
 export function advance(b: Ball, h: number, c: Cloth): void {
   let rem = h;
+  
+  if (b.z > 0 || b.vz !== 0) {
+    b.z += b.vz * rem - 0.5 * G * rem * rem;
+    b.vz -= G * rem;
+    if (b.z <= 0) {
+      b.z = 0;
+      b.vz = -b.vz * 0.5;
+      if (Math.abs(b.vz) < 0.1) b.vz = 0;
+    }
+  }
+
   for (let guard = 0; guard < 4 && rem > 0; guard++) {
     const ux = b.vx - R * b.wy, uy = b.vy + R * b.wx;
     const us = Math.sqrt(ux * ux + uy * uy);

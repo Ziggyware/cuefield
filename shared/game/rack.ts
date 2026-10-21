@@ -2,7 +2,6 @@ import type { Mode } from "../catalog.ts";
 import { R } from "../physics/constants.ts";
 import type { Ball } from "../physics/types.ts";
 
-/** mulberry32: integer-only PRNG, identical on every engine. */
 export function rng(seed: number): () => number {
   let s = seed >>> 0;
   return () => {
@@ -24,11 +23,10 @@ function shuffle<T>(a: T[], r: () => number): T[] {
   return a;
 }
 
-export const ball = (id: number, x: number, y: number, on = true): Ball => ({ id, x, y, vx: 0, vy: 0, wx: 0, wy: 0, wz: 0, on });
+export const ball = (id: number, x: number, y: number, on = true): Ball => ({ id, x, y, z: 0, vx: 0, vy: 0, vz: 0, wx: 0, wy: 0, wz: 0, on });
 
 const ROWS: Record<Mode, number[]> = { 8: [1, 2, 3, 4, 5], 9: [1, 2, 3, 2, 1], 10: [1, 2, 3, 4], 15: [1, 2, 3, 4, 5] };
 
-/** Triangle (8-ball, 10-ball, rotation) or diamond (9-ball) with the apex on the foot spot, 20 µm seeded gaps. */
 export function rack(mode: Mode, L: number, seed: number): Ball[] {
   const r = rng(seed);
   const d = 2 * R + 2e-5;
@@ -71,7 +69,6 @@ export function rack(mode: Mode, L: number, seed: number): Ball[] {
   return balls;
 }
 
-/** First free point on the long string from the foot spot toward the foot rail, then toward the head. */
 export function respot(balls: Ball[], b: Ball, L: number): void {
   const free = (x: number) => balls.every((o) => o === b || !o.on || (o.x - x) * (o.x - x) + o.y * o.y >= 4 * R * R);
   const step = 2 * R + 1e-4;
@@ -83,9 +80,11 @@ export function respot(balls: Ball[], b: Ball, L: number): void {
   }
   b.x = x;
   b.y = 0;
+  b.z = 0;
   b.on = true;
   b.vx = 0;
   b.vy = 0;
+  b.vz = 0;
   b.wx = 0;
   b.wy = 0;
   b.wz = 0;

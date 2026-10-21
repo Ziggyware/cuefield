@@ -9,6 +9,8 @@ export interface Aim {
   tx: number;
   ty: number;
   elev: number;
+  tipChalk: number;
+  handChalk: number;
 }
 
 export function toCmd(a: Aim, cue: CueSpec, power: number, place?: [number, number], call?: number): StrikeCmd {
@@ -21,6 +23,8 @@ export function toCmd(a: Aim, cue: CueSpec, power: number, place?: [number, numb
     tx: Math.round(a.tx * k * 1000),
     ty: Math.round(a.ty * k * 1000),
     el: Math.min(cue.elev, Math.round(Math.tan(a.elev / 2) * 1e4)),
+    tipChalk: Math.round(a.tipChalk * 1000) / 1000,
+    handChalk: Math.round(a.handChalk * 1000) / 1000,
   };
   if (place) cmd.place = [Math.round(place[0] * 1e5) / 1e5, Math.round(place[1] * 1e5) / 1e5];
   if (call !== undefined) cmd.call = call;

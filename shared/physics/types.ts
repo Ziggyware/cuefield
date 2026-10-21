@@ -1,10 +1,11 @@
-/** Position m, velocity m/s, angular velocity rad/s (x, y horizontal, z vertical). */
 export interface Ball {
   id: number;
   x: number;
   y: number;
+  z: number;
   vx: number;
   vy: number;
+  vz: number;
   wx: number;
   wy: number;
   wz: number;
@@ -18,7 +19,6 @@ export interface Cloth {
   eCushion: number;
 }
 
-/** Cushion line; n points into the playable side, t along A→B. */
 export interface Segment {
   ax: number;
   ay: number;
@@ -29,7 +29,6 @@ export interface Segment {
   len: number;
 }
 
-/** Mouth midpoint, outward throat axis, mouth half width, capture depth, facing taper, drop-hole circle. */
 export interface Pocket {
   x: number;
   y: number;

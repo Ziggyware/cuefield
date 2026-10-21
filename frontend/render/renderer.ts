@@ -13,9 +13,8 @@ import { TABLE_FS } from "./shaders-table.ts";
 import { BALL_FS, BALL_VS, SHADOW_FS } from "./shaders-ball.ts";
 
 const LAMP_H = 1.0;
-/** Grade contrast pivoting on 18% grey. */
 const CONTRAST = 1.08;
-const STRIDE = 12;
+const STRIDE = 15;
 
 export class Renderer {
   gl: WebGL2RenderingContext;
@@ -70,7 +69,6 @@ export class Renderer {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
 
-  /** orient: 9 floats per ball, column-major local → world. */
   draw(view: View, balls: Ball[], orient: Float32Array): void {
     const gl = this.gl, spec = this.spec, geo = this.geo;
     if (!spec || !geo) return;
@@ -86,6 +84,7 @@ export class Renderer {
     this.cache.draw(W, H, key, this.quad, () => tablePass(gl, this.table, this.tableBuf, spec, cloth, geo, clip, px, (p) => this.lamps(p)));
     gl.enable(gl.BLEND);
 
+    const pal = paletteHex().map(hexRgb);
     let n = 0;
     for (const b of balls) {
       if (!b.on) continue;
@@ -94,6 +93,12 @@ export class Renderer {
       this.data[o + 1] = b.y;
       this.data[o + 2] = b.id;
       this.data.set(orient.subarray(b.id * 9, b.id * 9 + 9), o + 3);
+      
+      const c = pal[b.id] ?? pal[0];
+      this.data[o + 12] = c[0];
+      this.data[o + 13] = c[1];
+      this.data[o + 14] = c[2];
+      
       n++;
     }
     if (!n) return;
@@ -109,7 +114,7 @@ export class Renderer {
       this.lamps(p);
       for (let i = 0; i < 8; i++) gl.disableVertexAttribArray(i);
       attrib(gl, p.a("aQ"), this.quad, 2, 2, 0, 0);
-      for (const [a, sz, off] of [["aC", 2, 0], ["aId", 1, 2], ["aR0", 3, 3], ["aR1", 3, 6], ["aR2", 3, 9]] as const) {
+      for (const [a, sz, off] of [["aC", 2, 0], ["aId", 1, 2], ["aR0", 3, 3], ["aR1", 3, 6], ["aR2", 3, 9], ["aCol", 3, 12]] as const) {
         attrib(gl, p.a(a), this.inst, sz, STRIDE, off, 1);
       }
     };
@@ -120,7 +125,6 @@ export class Renderer {
 
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     bind(this.ball, 1.0);
-    gl.uniform3fv(this.ball.u("uCol"), paletteHex().flatMap(hexRgb));
     gl.uniform3fv(this.ball.u("uCloth"), cloth);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.atlas);

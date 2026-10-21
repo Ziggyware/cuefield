@@ -5,11 +5,9 @@ import { q } from "./db.ts";
 import { clockOf, createMatch, loadMatch, type Match } from "./match.ts";
 import { payout } from "./payout.ts";
 
-/** A seat that has not polled for this long forfeits. */
 export const STALE_MS = 45_000;
 const ANIM_GRACE_MS = 8_000;
 
-/** Optimistic write keyed on version; returns false if another request won the race. */
 async function commit(m: Match, state: GameState, entry: unknown, deadline: number, reason: string | null): Promise<boolean> {
   const done = state.winner >= 0;
   const rows = await q(
@@ -34,7 +32,6 @@ async function commit(m: Match, state: GameState, entry: unknown, deadline: numb
 
 export type ShotResult = { ok: true; hash: string; version: number } | { error: string; status?: number };
 
-/** Server-authoritative replay of one command from the seat whose turn it is. */
 export async function submit(m: Match, seat: 0 | 1, cmd: Cmd, shot: number): Promise<ShotResult> {
   if (m.status !== "live") return { error: "over", status: 409 };
   const st = m.state;
@@ -50,14 +47,20 @@ export async function submit(m: Match, seat: 0 | 1, cmd: Cmd, shot: number): Pro
   const cue = m.cue[seat];
   const err = validate(st, cmd, cue);
   if (err) return { error: err, status: 400 };
+  
   const { state, sim } = play(st, cmd, cue);
+  
+  if (state.last?.foul && m.stake > 0) {
+    const foulFine = 5;
+    await q(`UPDATE players SET coins = MAX(0, coins - ?) WHERE id = ?`, [foulFine, m.p[seat]]);
+  }
+  
   const deadline = Date.now() + Math.ceil(sim.t * 1000) + clockOf(m) + ANIM_GRACE_MS;
   return (await commit(m, state, { by: seat, cmd }, deadline, "win"))
     ? { ok: true, hash: hash(state), version: m.version + 1 }
     : { error: "race", status: 409 };
 }
 
-/** Both seats gone: the match ends without a winner and both entry fees go back. */
 async function abandon(m: Match): Promise<void> {
   const rows = await q(
     `UPDATE matches SET status = 'done', winner = -1, reason = 'abandoned', ended = ?, version = version + 1 WHERE id = ? AND version = ? AND status = 'live' RETURNING id`,
@@ -66,10 +69,6 @@ async function abandon(m: Match): Promise<void> {
   if (rows.length && m.stake > 0) await q(`UPDATE players SET coins = coins + ? WHERE id IN (?, ?)`, [m.stake, m.p[0], m.p[1]]);
 }
 
-/**
- * Lazily applies shot-clock timeouts and stale-seat forfeits; called on every poll, spectator view and lobby read.
- * Correspondence matches never forfeit for absence, only for the day-long shot clock.
- */
 export async function tick(m: Match, now = Date.now()): Promise<Match> {
   if (m.status !== "live") return m;
   const stale = m.clock === null ? ([0, 1] as const).filter((s) => now - m.seen[s] > STALE_MS) : [];
@@ -84,6 +83,9 @@ export async function tick(m: Match, now = Date.now()): Promise<Match> {
   }
   if (now > m.deadline) {
     const next = timeout(m.state);
+    if (m.stake > 0) {
+      await q(`UPDATE players SET coins = MAX(0, coins - ?) WHERE id = ?`, [5, m.p[m.state.turn]]);
+    }
     await commit(m, next, { by: m.state.turn, cmd: { k: "timeout" } }, now + clockOf(m) + ANIM_GRACE_MS, "timeouts");
     return (await loadMatch(m.id)) ?? m;
   }
@@ -95,7 +97,6 @@ export async function heartbeat(m: Match, seat: 0 | 1): Promise<void> {
   await q(`UPDATE matches SET seen${seat} = ? WHERE id = ?`, [m.seen[seat], m.id]);
 }
 
-/** Both seats opt in → one new match, created exactly once via the next_id guard. */
 export async function rematch(m: Match, seat: 0 | 1): Promise<string | null> {
   if (m.status !== "done") return null;
   if (m.next) return m.next;

@@ -1,258 +1,259 @@
 {
+ ".val": "b321dc81-fd21-4e46-8e09-feb1275549e6",
  "README.md": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "20e5c2fa63881f2c4eb9793304bf64f45f768921c8ca665c8386d34c0fd516e8"
  },
  "backend/api-hub.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "a0ecd84673197b4df877f91b4c937724ef92fa997da9bfd8b5777ced37d857a5"
  },
  "backend/api-match.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "b1003d37ea6597389052e37d8327f2ac297e84ede0c4874a97c81219b503f869"
  },
  "backend/api.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "29e7645e35fd59bfcbacecf74fafaadee0a13a438fb24bc9f3a8e0c997cebc37"
  },
  "backend/auth.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "dc0ed22a96ddf41f803bc6e61751b58937f3e0aa499512bd2071309f74729cac"
  },
  "backend/daily.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "35b2e81199cdad96010c5cb4efa07e304a73340800ef6f55f0bedc1eae2a8487"
  },
  "backend/db.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "cb75579b350b6009620c5a9039118ea1d7b60037c87562f3c87a36c9a893dc2d"
  },
  "backend/http.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "b6bd888bc82c666c349f94bfd82a2e677d76cee03dbfdc72c4670f7a75ecae27"
  },
  "backend/hub.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "190eb57293ddef76ac552cdf4cec17eb6caa6ec31b2d7606260dfadbabbdabe2"
  },
  "backend/identity.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "34d6bd73232521318444c518b48a1f808b981ab07ac50cf8aebcfa0ef3033a08"
  },
  "backend/invites.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "01efd243ad91ec600dfd423ceeaa0eb1b075896e8e56f2f7e7f569041cfc828a"
  },
  "backend/lobby.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "5d05ceb7371315a99f3fe8c21fcacbe19b1fed0f07a9ef51aa52b3289f7a2db3"
  },
  "backend/match-view.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "237a8b13c0576ea31519cbfb8202ba819619ab2ae838439a70d615b4f6facd51"
  },
  "backend/match.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "7d929242d879d0660d83310f74d16bc62b74b41ae3774355584a52a5cf4a288d"
  },
  "backend/payout.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "90662f9a5261a43a418230e7d91d841b043e031c4c1eb6d9ee5216275acf6115"
  },
  "backend/profile.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "fe17945f0b4af0df38417dd7aac3e03ce5f0cd1e13a00c8428b5d9d07e073d66"
  },
  "backend/results.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "6bc7f48333144c190d4131cc8d178adc1c14a264997e69916ea8baccc3837be9"
  },
  "backend/rooms.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "205ec0232e856e11136c32bab4601b8a920da0d866b94abb567ba55f016663ba"
  },
  "backend/schema-mp.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "b43988209bcce6cdeeafd85953b0584e7f82123fbec95bada136ce83e589ca0d"
  },
  "backend/signal.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "b950c9da52d65731ffa32df60d6b342ddeedff50cf5ac6ef526b60b1a70dcf00"
  },
  "backend/solo.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "3b11dbef7ea2107c24ec540c5d3a1a150523c8f985b11ea7db55bf87882d0b5f"
  },
  "backend/stats.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "0ed6caeed9865e52b97fd5c0dc85ffb09aed44febc1f9dea383371a1be627c73"
  },
  "backend/turns.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
-  "sha": "51405e1e89fca04681ce7844a401c8b1471d653044b3e0bed0fd2395611290ab"
+  "at": "2026-10-21T04:18:26+00:00",
+  "sha": "6f2105c1e8b84910e9bd6a47d56db48ee965fe3be8babbf1ace8afd84fac01b7"
  },
  "backend/watch.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "670abe62c0b017a499b10d57e459fbdf132064497122e4088991f45f92182de8"
  },
  "favicon.svg": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "20dd0276a145731b8dca440fe16f3c1fcd48c45325412e3b210256e959015e92"
  },
  "frontend/aim.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
-  "sha": "f7a3e65f7f131bb2ee36c12e920bfac12e8edfceac65b2b02710b3c375be2785"
+  "at": "2026-10-21T04:18:26+00:00",
+  "sha": "803ed4348d347234b33df3de1f22070569cc65fed93b0dade4c27f0d1f558079"
  },
  "frontend/api.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "48d1bad904dd99d062c321474c29a68086593fc961e6fa3b382284c5b3c978fb"
  },
  "frontend/app.css": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "4741c78ff1b51e769436fc494ef7abe5233be5d1739b3159c3d2d9a4f3c5e7e4"
  },
  "frontend/audio.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "8c2aa84d4b37a9de97861ebba91afde8d2f8caf9f96875fd98728505d2813c41"
  },
  "frontend/bot/eval.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "7b62c7f732c604fd1b1ed29696b7b44c6b11f6c395cc97ac26f5a94c5903f865"
  },
  "frontend/bot/plan.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "6be99711fb44a83e81d3e3ae0a24bc6db8e9c0c42ad3254f8c61857ded6dc7fd"
  },
  "frontend/bot/worker.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "8df6ef569541e76f930f4a896dce4243fdffa0bb429c907ccf64980f7cdfe957"
  },
  "frontend/dom.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "2de36dc0cf9c163ea9788b27b5e54cb8cf46f559fee80b7c75e352f2efcdac32"
  },
  "frontend/game.css": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "e3d91530c797aaa3b2a9305f5f582765f43b61214f46c144f8da94dc1adc86a1"
  },
  "frontend/game/aim-reset.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "b6fbd314d0751d62bf8a496f296360b91eaad67b70cae59adc58d26dda37f5ca"
  },
  "frontend/game/daily.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "c7ca9d6a066041b5daf46a2408689bb2d1048e0a9e4ff489e795c46ab98a4979"
  },
  "frontend/game/frame.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "b2500f785e38e470275f08ec4c67e3809618805ce6af04393dc50b2b0752db4b"
  },
  "frontend/game/freeplay.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "25212b43185467ee170e3171613e71a29169b26eb9100853a8b25f7fb693b234"
  },
  "frontend/game/input.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "48b380b02d43f6b8556f70e92fb68a4e074212e1bac734fc55c9cf287e730806"
  },
  "frontend/game/keys.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "2ca26fdd472ce9ae740e718548bae85dc1dbfcc115d5a37baeea2c90186ad925"
  },
  "frontend/game/match-view.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "ee6fb366ff6f513c7e0f8449d6c6b440b9455537e3c549da92ddf670801bc2d5"
  },
  "frontend/game/motion.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "c1094cc9c12c9984edd99bbea404f044a1574b7c029adf9711875a585b684f18"
  },
  "frontend/game/online-net.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "6c33d307c70a550a74d586735db22a6b92bbc1d897cdaa7907d45bd8816c8d0d"
  },
  "frontend/game/online.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "e11dc90974e19b47c5e2ac2b92985ca0e3f1a9f99ee1735321b2fa350d68976f"
  },
  "frontend/game/practice.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "02c4dd9c60d87c2cf75d9ab930ab7acc9fab5771819366664587075b3d4f1127"
  },
  "frontend/game/replay.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "fa38b1ea56cd446ecec58e50a8d16197a0e4fb3483445b94d500f88897206752"
  },
  "frontend/game/session-types.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "b432e761f468b8f32881be17381223e4de2a81aaac9e9c39388e35c89776d941"
  },
  "frontend/game/session.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "9021d36066e24ea3826d7c35e6267ebab131fbe77adc0e8e0fc3725b0ba349b6"
  },
  "frontend/game/spectate.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "6c09828e77469be8f4f0be473fb153f84309e72e09e30c2bb6215b202670e2af"
  },
  "frontend/game/stage.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "90b4b884fce6aec63d32f79ce825816d6412e4ce4904a91920cce73198268f86"
  },
  "frontend/game/table-screen.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "a1cdfcf10d582970196d1f259cb2030efeddf655a32f4140ab998bda4aed2303"
  },
  "frontend/hub.css": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "15e704e1aa8f71148ebba7b281cba1299d25ddb26ec07aaddf06b962606b7470"
  },
  "frontend/links.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "e53723eadf1ab7ca51176dccc0b19256614089625ea2d5f70e9bc5369c0f991a"
  },
  "frontend/main.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "cba23a9f39292255e1c771d8b3fd4435de9ecdc2984c7a3db5e21e9758d8b182"
  },
  "frontend/net/hub.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "5a0d0dde1d8b5cc018e34b54d685316684bd55d8a5a940df79a6d9436eeb55ea"
  },
  "frontend/net/peer.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "c9b47bbf77c3567f767d669a05f6557944096c4c838af3d8db48c317fe5a5ad3"
  },
  "frontend/net/types.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "84490d8fb443cfb3adcfaf88bc777dc7d327516fea38d75145e84c8658d5f093"
  },
  "frontend/prefs/defs.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "a3c6997e622a6590fa96ba93141e8d04339e03f128ed191a4a1e10d58a295b57"
  },
  "frontend/prefs/groups-a.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "112826a9f39c9b0abeaf907d09e695eba0bbd708ae329fb064b32e0a6ce2b944"
  },
  "frontend/prefs/groups-b.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "658dd23d620cdfbe1014ff238620c7a0f3136ea20b08e2e1ea51bf83cbe35373"
  },
  "frontend/prefs/look.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "b46ecd27ab2cd4b63edba8e60ef6addca1ff53574fc18af683780964e133f27f"
  },
  "frontend/prefs/schema.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "456eca165960b978f0d26f33a79599b9b7e6d0177cb123cae61bfcfc29046b72"
  },
  "frontend/prefs/store.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "e41ef754f36f36dc0a01b3f3fcf74cf2ce81cd4dd6cf64ed889e5a2f57496322"
  },
  "frontend/preview.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "54915b3ffadef1ec491c932e017e85563e7772fd7e29be23c2ab2b124d21dbcb"
  },
  "frontend/render/aids-table.ts": {
@@ -260,223 +261,223 @@
   "sha": "a6df7b30949e2bd66c564e5f99ae4e07502383b02fd36338dc7923ef10e5f1b8"
  },
  "frontend/render/aids.ts": {
-  "at": "2026-10-20T08:10:10+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "0b4fa698d55e0534a47fa4eef4357e63a75dd23dabc08b8119e9a71f401709bd"
  },
  "frontend/render/atlas.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "06a122dec253aeac86bbcebe2175cfdbacfb8eafdc8d6de115d9babdea0d3269"
  },
  "frontend/render/gl.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "17b75d2b24953541a38c499df49f3f9eeeaed9d01fcb286cdd271674f403ffbe"
  },
  "frontend/render/orient.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "964a78f571135aac3de6cf0742ef8c330dd4869473cfce517106feb548598f4f"
  },
  "frontend/render/overlay.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "864b96a7af0d8784231a51a491d6911427cae4678c98e831c470046e10248792"
  },
  "frontend/render/renderer.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
-  "sha": "46b52a701a2caf08deb7cc825fb25f9596401d2015b56183c68f1f34182eac04"
+  "at": "2026-10-21T04:18:26+00:00",
+  "sha": "0979087e731275b964b52918c6235bf2428c91526f1ff55b282cbc4bc58a3eec"
  },
  "frontend/render/shaders-ball.ts": {
   "at": "2026-10-20T08:13:22+00:00",
   "sha": "405256763d77b6156401612e508d81b145a4ff46e12b09a64f0be7db965b42ae"
  },
  "frontend/render/shaders-table.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
-  "sha": "194889c7f3ed080d8ee454dc6d34c1bbc9c2153b8ff4b3b1969dcf7aa06c510d"
+  "at": "2026-10-21T04:18:26+00:00",
+  "sha": "ece296cdbf28bc467301fdf610f731dd89e5d62e42dd3fa73e7f1736cbd5d135"
  },
  "frontend/render/shaders.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
-  "sha": "dd978e11c247d2a63685bd57d7eef186db99233da072316004c1623fcd71251f"
+  "at": "2026-10-21T04:18:26+00:00",
+  "sha": "f148a07b9e2562607853292ce5ffd3888a33419a55e5662f71c22baa4721d33c"
  },
  "frontend/render/stick.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "136b7a47a3d801f8edbe2942d328990b542d6afe636c62f9a5d44078c03d446d"
  },
  "frontend/render/table-cache.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "d1398c17b03260db83aabc76c7a92341be4092de01e50747bbab0d251ef2f431"
  },
  "frontend/render/table-pass.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "8f166ec4d2349cee50b98eab70e41d8401d7dd1c09d75cfdba1cc81db53569d0"
  },
  "frontend/screen.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "aea465025b7f6c15a17e9ef243dbc9335bf4f6c6d571e050a1c8952be2981a1a"
  },
  "frontend/style.css": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "20461109fc40e2d0418dd66b23f037414e18cfcfe0d78d0612045c2604c68978"
  },
  "frontend/ui/boards.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "50f6028a57adca879e9baf8570762cb858bf016ad85a9b3875df680631dabcb2"
  },
  "frontend/ui/challenge.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "d8ea0fc9999f5e9c55696d581ac000b827872232991adc85351ecfdfc807b7d5"
  },
  "frontend/ui/controls.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
-  "sha": "bb1efd0a5f273cbcfffcd2f76f5561717760397fc4d2c2378053ce8229308156"
+  "at": "2026-10-21T04:18:26+00:00",
+  "sha": "49e0a88594e52b8ee1c2d3226aeca24a63e5c217512ae937a28432dca2a48084"
  },
  "frontend/ui/drag.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "9591c0bd5098585d40d0cf8a85b465f0860d0eb57d7dce7fd20abfddbdb6aaf3"
  },
  "frontend/ui/host.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "fe87b9fb1dcd9f6f4089d20efdd98736acb09b58f09fa8839bc02b871204ea66"
  },
  "frontend/ui/hud-balls.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "ae2a9ac90daf325e8d83bf7d51ba7aa2289aa0d1430577c3aba203b7da57d888"
  },
  "frontend/ui/hud.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "665e56d7322254b5973a069ca7709c06cf02a17bf2622452eb74ffcb9d53b643"
  },
  "frontend/ui/live.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "7d0e74ff12f21422c9d673394ed50f3333cbaf47be67a0bbd5d21af5a8122f3b"
  },
  "frontend/ui/matchmaking.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "d273cef92dffff1ece163f8b3c3587d3736f22f4543b1fd4ff6efccb08c6d9ff"
  },
  "frontend/ui/play.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "260433b2a058271e6752ceec3afc01430048158d290b01c8419f91fc56cfca52"
  },
  "frontend/ui/pulse.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "03e71b7642ff3f7b14449bce8f7ae321121dd82c1d30bf16346e22fb3ab2219c"
  },
  "frontend/ui/result.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "2e4a31e4fa6874a8a8f916fe66fe8e29edd816e85cdc0423ec2976e28ea673c7"
  },
  "frontend/ui/rules-text.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "ace80c9f0571f972408c3010cccb5b84e767d58bdaaf3f86fe4c49b0b6b63f18"
  },
  "frontend/ui/say.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "df47f0d3bef5e6bb439397b47ecf557fd90b5d9a9fa343ede9816291b9718f54"
  },
  "frontend/ui/settings.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "ac61e56fd8506d2a7579e2b0ffad1dc156df5cd7f044fdb11a1bc73c9f80102f"
  },
  "frontend/ui/shell.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "cf917e513cf1e52188d3ffef2454403a83e7b7f2adf3fc6ae071cbb118d894bf"
  },
  "frontend/ui/shop.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "06ae1b3356a4b685017f209c7b16be0588473adfbacb6f28901e582e7a409ab4"
  },
  "frontend/ui/stats.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "2355a27f98b0db9c985838566a267e8709a51e0663633bcdbccf54a03a7e8acd"
  },
  "frontend/ui/store.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "fd78c85e695d976a396e81a9252d5d8054ec5662a6eaa63c9157e1ea81f07bb7"
  },
  "frontend/view.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "e5a04a3b24eb9b31fd36d37999166d652e3369c98f96a26c57e0511242b41e42"
  },
  "index.html": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "a713504f2b6e94a74173c6a86c6908b1c95243421d4ade9f43227351274e3f0b"
  },
  "main.tsx": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "a2a9a5d87304940430173dc0079bc97391adc92469195aaa13334d6390800df4"
  },
  "shared/catalog.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "cd8a432fe9b492b4c59d05a61bd7c12d7de9562e1871b3e37c2202bf48e2165a"
  },
  "shared/features.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "65b9bbf40cccfce69dea1eeaa09e39c26dba655f57aac5f1b71fcdcbf1637ba3"
  },
  "shared/game/daily.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "eec118e23babfa945855e652b5d93fd69c226fe870802985584ea32bb6b9e737"
  },
  "shared/game/engine.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "d5f38b00d4310500714ab4783c66c3cbf8ea6b89634bbe409e63c941bfdf2ea7"
  },
  "shared/game/facts.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "9a7f17a22f362fa2ce1edda028cc4b17d61a64f7d2849924f6dcead462fdc983"
  },
  "shared/game/rack.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
-  "sha": "70006d3b0aeaad0464add403794b237e5134a78dff19c83a5bd19b19f713eb6b"
+  "at": "2026-10-21T04:18:26+00:00",
+  "sha": "a3ab79a448666a59d092668bd4f705c5ec0c041f4742177e05797733748cc8ae"
  },
  "shared/game/rules.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "024f214c3d4a237a3dee2b17765336fa881d47334a8d3232aa0d8efe7bb5040a"
  },
  "shared/game/types.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
-  "sha": "ca1478822593761269e966b04c7f08d3f77826b3b18e11b86143634e45557ac0"
+  "at": "2026-10-21T04:18:26+00:00",
+  "sha": "60a661c71b64dad96867d24625f06d6b2e0018dbd438b425e823cedeb9aae1a5"
  },
  "shared/game/validate.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "79478ff83f470a5bb34fe956b5582482d87ff04e4c44035a300f2b91e11bd933"
  },
  "shared/physics/collide.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "84b782add3b867445898579362deaffc3e484f53bc2fc727d55d58578043d0f9"
  },
  "shared/physics/constants.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "d800215694f41da7e1888eb79a9e006860cf5d30be74bf6769eabca82e6e30d0"
  },
  "shared/physics/geometry.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "712819bdcbf795b532cc9a10a3b61ce58670c28ff35381ef4f2767d000ad12f1"
  },
  "shared/physics/motion.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
-  "sha": "c862fee86a75a47884a2f077ddf5e9d14630b65125aa7e51ecfdec13ab4d7595"
+  "at": "2026-10-21T04:18:26+00:00",
+  "sha": "10e8fb7e70a48b8f78333726a9627e94d89281a7f59564ab01a14f67e0771d7a"
  },
  "shared/physics/sim.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "88080b5d6870ff52f320f744142bd9c7f9530bea7170a54293c92b0ac63dfdef"
  },
  "shared/physics/strike.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
-  "sha": "4f77d4ce234eafa32a5c30cff59614207fe183bc135dc5623f3113d19860d690"
+  "at": "2026-10-21T04:18:26+00:00",
+  "sha": "af2ccaf4c482a7b2f93138037f76f19a08f7697c210edf5f8cb343cf785bcbd2"
  },
  "shared/physics/types.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
-  "sha": "85ef282d15da26651ce44c285faea5850f8701458f090681b1192f3309cd533b"
+  "at": "2026-10-21T04:18:26+00:00",
+  "sha": "9911b92fe19a6273c01bf0fe8cdca84c93e84d4ec07d07831dc5f8a0ca786fe4"
  },
  "shared/social.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "d6f1b5af79ccbb8f83cb21d1a43c6fb91a3032ce562b3e48f0283c8398746213"
  },
  "shared/upgrades.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "8d7c5998a6eec21d83dd0ddea781cf090c51e7433e8285ad8be17727c786e6c9"
  },
  "shared/venues.ts": {
-  "at": "2026-10-20T08:13:22+00:00",
+  "at": "2026-10-21T04:18:26+00:00",
   "sha": "bd6e8644a47d55f0950ae7ad7c9c19db786cb589311e44ce4dca5a5705c75f8c"
  }
 }

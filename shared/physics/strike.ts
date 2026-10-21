@@ -1,8 +1,8 @@
 import type { CueSpec } from "../catalog.ts";
+import type { StrikeCmd } from "../game/types.ts";
 import { INERTIA, MASS, R } from "./constants.ts";
 import type { Ball } from "./types.ts";
 
-/** Quantised shot input. dx, dy: aim ×1e6. power: 1..1000. tx, ty: tip offset ±1000 of the cue's spin limit (ty up). el: tan(θ/2)×1e4. */
 export interface StrikeInput {
   dx: number;
   dy: number;
@@ -25,19 +25,19 @@ export function clampInput(i: StrikeInput, cue: CueSpec): StrikeInput {
   };
 }
 
-/**
- * Cue–ball impact as a point impulse along the cue axis d at Q = a ŝ + b û − c d̂ (|Q| = R).
- * F = (1+e)V / (1/M + 1/m + (a²+b²)/I); Δv = F d_h/m (vertical part absorbed by the slate); Δω = F (Q × d)/I.
- * Squirt (Alciatore): tan α = (5/2)(a/R)√(1−(a/R)²) / (1 + m/mₑ + (5/2)(1−(a/R)²)), deflecting away from the english.
- * Elevation uses the rational parametrisation sin θ = 2t/(1+t²), cos θ = (1−t²)/(1+t²) to stay trig-free.
- * wobble: stroke aim error as tan(φ/2), applied as the same rational rotation of the aim before squirt.
- */
-export function strike(cueBall: Ball, raw: StrikeInput, cue: CueSpec, wobble = 0): void {
+export function strike(cueBall: Ball, raw: StrikeCmd, cue: CueSpec, wobble = 0): void {
   const inp = clampInput(raw, cue);
+  
+  const tc = raw.tipChalk || 0;
+  const hc = raw.handChalk || 0;
+  
+  let w = wobble * (1 - 0.3 * hc);
+  w *= (1 - 0.4 * tc);
+  
   const hn = Math.sqrt(inp.dx * inp.dx + inp.dy * inp.dy);
   let hx = inp.dx / hn, hy = inp.dy / hn;
-  if (wobble !== 0) {
-    const w2 = wobble * wobble, c0 = (1 - w2) / (1 + w2), s0 = (2 * wobble) / (1 + w2);
+  if (w !== 0) {
+    const w2 = w * w, c0 = (1 - w2) / (1 + w2), s0 = (2 * w) / (1 + w2);
     const rx = hx * c0 - hy * s0;
     hy = hx * s0 + hy * c0;
     hx = rx;
@@ -60,7 +60,7 @@ export function strike(cueBall: Ball, raw: StrikeInput, cue: CueSpec, wobble = 0
   const sx = hy, sy = -hx;
   const dx = hx * cosT, dy = hy * cosT, dz = -sinT;
   let ux = sy * dz, uy = -sx * dz, uz = sx * dy - sy * dx;
-  const un = Math.sqrt(ux * ux + uy * uy + uz * uz);
+  const un = Math.sqrt(ux * ux + uy * uz + uz * uz);
   ux /= un;
   uy /= un;
   uz /= un;
@@ -75,9 +75,17 @@ export function strike(cueBall: Ball, raw: StrikeInput, cue: CueSpec, wobble = 0
   const Qz = b * uz - c * dz;
 
   const V = cue.speed * (inp.power / 1000);
-  const F = ((1 + cue.tipE) * V) / (1 / cue.mass + 1 / MASS + (a * a + b * b) / INERTIA);
+  const F = ((1 + cue.tipE * (1 + 0.15 * tc)) * V) / (1 / cue.mass + 1 / MASS + (a * a + b * b) / INERTIA);
+  
   cueBall.vx = (F * dx) / MASS;
   cueBall.vy = (F * dy) / MASS;
+  
+  if (dz < -0.1) {
+    cueBall.vz = Math.abs((F * dz) / MASS) * 0.6;
+  } else {
+    cueBall.vz = 0;
+  }
+  
   cueBall.wx = (F * (Qy * dz - Qz * dy)) / INERTIA;
   cueBall.wy = (F * (Qz * dx - Qx * dz)) / INERTIA;
   cueBall.wz = (F * (Qx * dy - Qy * dx)) / INERTIA;
