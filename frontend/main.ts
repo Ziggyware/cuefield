@@ -1,4 +1,4 @@
-import { api, ApiError, hasToken, type Profile, setToken } from "./api.ts";
+import { api, ApiError, hasToken, type Profile, setToken, setValTownLogin, valTownLogin } from "./api.ts";
 import { h, mount, once, toast } from "./dom.ts";
 import { playDaily } from "./game/daily.ts";
 import { playOnline } from "./game/online.ts";
@@ -92,8 +92,8 @@ function onboard(): void {
       setToken(r.token);
       me = r.profile;
       home();
-    } catch {
-      toast("2–20 characters");
+    } catch (error) {
+      toast(error instanceof ApiError && error.code === "name" ? "2–20 characters" : "server unreachable · try again");
     }
   });
   input.addEventListener("keydown", (e) => e.key === "Enter" && guest());
@@ -103,10 +103,12 @@ function onboard(): void {
       "div",
       { class: "screen", style: "justify-content:center;max-width:26rem" },
       h("div", { class: "big v", text: "CUEFIELD" }),
-      h("span", { class: "k", text: "Sign in with your Val Town account. Your name, coins, cues and unlocks are saved to it." }),
-      h("button", { class: "primary", text: "LOG IN WITH VAL TOWN", onclick: () => (location.href = "/auth/login") }),
-      h("div", { class: "sep" }),
-      h("span", { class: "k", text: "Or try as a guest on this device; log in later to keep the progress." }),
+      valTownLogin ? h("span", { class: "k", text: "Sign in with your Val Town account. Your name, coins, cues and unlocks are saved to it." }) : null,
+      valTownLogin ? h("button", { class: "primary", text: "LOG IN WITH VAL TOWN", onclick: () => (location.href = "/auth/login") }) : null,
+      valTownLogin ? h("div", { class: "sep" }) : null,
+      h("span", { class: "k", text: valTownLogin
+        ? "Or try as a guest on this device; log in later to keep the progress."
+        : "Guest progress is saved on this server, separately from Val Town. Your sign-in key stays in this browser; clearing its site data loses access." }),
       h("div", { class: "row" }, input, h("button", { text: "guest", onclick: guest })),
     ),
   );
@@ -117,7 +119,14 @@ async function boot(): Promise<void> {
   // Watch and replay links work without an account.
   if (link?.kind === "watch") return leave(() => watchMatch(ui, link.id, boot, (id) => leave(() => replayMatch(ui, id, boot))));
   if (link?.kind === "replay") return leave(() => replayMatch(ui, link.id, boot));
-  const session = await api<{ user: string | null }>("/session").catch(() => ({ user: null }));
+  let session: { user: string | null; valTownLogin?: boolean };
+  try {
+    session = await api("/session");
+  } catch {
+    toast("server unreachable · retrying", 2500);
+    return void setTimeout(boot, 3000);
+  }
+  setValTownLogin(session.valTownLogin !== false);
   if (!hasToken() && !session.user) return onboard();
   try {
     me = await api<Profile>("/me");

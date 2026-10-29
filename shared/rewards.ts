@@ -8,12 +8,16 @@ export interface RackStats {
   run: number;
   bestRun: number;
   multi: number;
+  /** Accumulated bonus for every legal multi-ball shot; absent in legacy saved matches. */
+  multiBonus?: number;
 }
-export const emptyStats = (): RackStats => ({ shots: 0, pots: 0, scoring: 0, fouls: 0, run: 0, bestRun: 0, multi: 0 });
-export function recordShot(prev: [RackStats, RackStats] | undefined, r: Report): [RackStats, RackStats] {
+export const MULTIPOT_PER_EXTRA = 25;
+export const multiPotBonus = (pots: number): number => MULTIPOT_PER_EXTRA * Math.max(0, Math.floor(pots) - 1);
+export const emptyStats = (): RackStats => ({ shots: 0, pots: 0, scoring: 0, fouls: 0, run: 0, bestRun: 0, multi: 0, multiBonus: 0 });
+export function recordShot(prev: [RackStats, RackStats] | undefined, r: Report, credited?: number[]): [RackStats, RackStats] {
   const stats: [RackStats, RackStats] = prev ? [{ ...prev[0] }, { ...prev[1] }] : [emptyStats(), emptyStats()];
   const s = stats[r.by];
-  const pots = r.foul || r.uncalled ? 0 : r.pocketed.filter((id) => id > 0 && !r.respot.includes(id)).length;
+  const pots = r.foul || r.uncalled ? 0 : (credited ?? r.pocketed).filter((id) => id > 0 && !r.respot.includes(id)).length;
   s.shots++;
   s.fouls += r.foul ? 1 : 0;
   s.pots += pots;
@@ -21,15 +25,19 @@ export function recordShot(prev: [RackStats, RackStats] | undefined, r: Report):
   s.run = pots ? s.run + pots : 0;
   s.bestRun = Math.max(s.bestRun, s.run);
   s.multi = Math.max(s.multi, pots);
+  s.multiBonus = (s.multiBonus ?? 0) + multiPotBonus(pots);
   if (!r.keep) s.run = 0;
   return stats;
 }
 export interface Bounty { id: string; title: string; amount: number; target: number; metric: "win" | "bestRun" | "multi" | "clean" | "streak" | "plays" | "pots"; daily?: boolean }
 export const BOUNTIES: Bounty[] = [
-  { id: "victory", title: "Winner's purse", amount: 30, target: 1, metric: "win" },
+  { id: "finish", title: "Rack completed", amount: 40, target: 1, metric: "plays" },
+  { id: "victory", title: "Winner's purse", amount: 80, target: 1, metric: "win" },
   { id: "triple", title: "Triple threat · 3 balls in one visit", amount: 20, target: 3, metric: "bestRun" },
   { id: "five", title: "On fire · 5 balls in one visit", amount: 45, target: 5, metric: "bestRun" },
-  { id: "double", title: "Double drop · 2 balls in one shot", amount: 15, target: 2, metric: "multi" },
+  { id: "double", title: "Double drop · 2 balls in one shot", amount: 35, target: 2, metric: "multi" },
+  { id: "triple-drop", title: "Triple drop · 3 balls in one shot", amount: 80, target: 3, metric: "multi" },
+  { id: "four-drop", title: "Four-ball drop · 4 balls in one shot", amount: 130, target: 4, metric: "multi" },
   { id: "clean", title: "Clean sweep · win without a foul", amount: 25, target: 1, metric: "clean" },
   { id: "streak3", title: "Hat trick · every 3 consecutive wins", amount: 60, target: 3, metric: "streak" },
   { id: "streak5", title: "Unstoppable · every 5 consecutive wins", amount: 120, target: 5, metric: "streak" },

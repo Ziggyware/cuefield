@@ -8,6 +8,7 @@ export function facts(ev: SimEvent[]): ShotFacts {
   let first = -1, tFirst = Number.POSITIVE_INFINITY, railAfter = false;
   const railSet = new Set<number>();
   const pocketed: number[] = [];
+  const offTable: number[] = [];
   const pockets = new Map<number, number>();
   for (const e of ev) {
     if (e.k === "ball" && first < 0 && (e.a === 0 || e.b === 0)) {
@@ -16,12 +17,14 @@ export function facts(ev: SimEvent[]): ShotFacts {
     } else if (e.k === "rail") {
       if (e.a !== 0) railSet.add(e.a);
       if (e.t >= tFirst) railAfter = true;
+    } else if (e.k === "off") {
+      offTable.push(e.a);
     } else if (e.k === "pocket") {
       pockets.set(e.a, e.p);
       if (e.a !== 0) pocketed.push(e.a);
     }
   }
-  return { first, railAfter, railBalls: railSet.size, pocketed, pockets, scratch: pockets.has(0) };
+  return { first, railAfter, railBalls: railSet.size, pocketed, pockets, scratch: pockets.has(0), offTable };
 }
 
 /** Group still on the table for player p, evaluated on the pre-shot rack. */

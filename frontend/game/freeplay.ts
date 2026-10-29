@@ -1,4 +1,5 @@
 import { type AssistLevel, cueById, type Mode, MODE_NAME, registerTable, tableById, type TableSpec } from "../../shared/catalog.ts";
+import { CHALLENGES, challengeState, clearsStation, type ChallengeId } from "../../shared/game/challenges.ts";
 import { newGame } from "../../shared/game/engine.ts";
 import { ball, RACK_SHAPES, type RackShape, shapeRack } from "../../shared/game/rack.ts";
 import type { GameState } from "../../shared/game/types.ts";
@@ -10,11 +11,12 @@ import { prefs } from "../prefs/store.ts";
 import { mountTable } from "./table-screen.ts";
 
 /** Practice setups: a plain rack, the Around-the-World drill, or one of the trick racks. */
-export type PracticeSetup = "free" | "drill" | RackShape;
+export type PracticeSetup = "free" | "drill" | RackShape | ChallengeId;
 
 export const SETUP_CHOICES: [PracticeSetup, string][] = [
   ["free", "free rack"],
   ["drill", "around the world"],
+  ...CHALLENGES.map((c) => [c.id, c.name] as [PracticeSetup, string]),
   ...RACK_SHAPES.map((s) => [s.id, s.name] as [PracticeSetup, string]),
 ];
 
@@ -72,11 +74,12 @@ export function playFree(
   const cue = effectiveCue(cueById(me.cue), me.upgrades);
   const id = labTable(table);
   const spec = tableById(id)!;
-  const shape = setup !== "free" && setup !== "drill" ? setup : null;
+  const challenge = CHALLENGES.find((c) => c.id === setup) ?? null;
+  const shape = RACK_SHAPES.find((s) => s.id === setup)?.id ?? null;
   const shapeName = shape ? RACK_SHAPES.find((s) => s.id === shape)?.name ?? shape : "";
 
   let station = 0, total = 0;
-  const bestKey = `cuefield.drill.${table}`;
+  const bestKey = challenge ? `cuefield.challenge.${challenge.id}.${table}` : `cuefield.drill.${table}`;
   const best = (): number => {
     try {
       return Number(localStorage.getItem(bestKey)) || 0;
@@ -88,6 +91,7 @@ export function playFree(
   const rack = (): GameState => {
     const st = newGame(mode, id, (Math.random() * 2 ** 31) >>> 0, 0);
     if (setup === "drill") return drillState(mode, spec, station);
+    if (challenge) return challengeState(challenge.id, mode, id, station);
     if (shape) {
       st.balls = shapeRack(mode, spec.L, spec.W, shape, TRICK_SEED);
       // The trick is the layout: no kitchen placement, no break rule, just the shot as arranged.
@@ -98,7 +102,7 @@ export function playFree(
   };
 
   const history: GameState[] = [];
-  const extra = prefs.rewind
+  const extra = prefs.rewind && !challenge
     ? [{
       text: "undo",
       fn: () => {
@@ -116,6 +120,12 @@ export function playFree(
       screen.hud.stake.textContent =
         `around the world · station ${Math.min(station + 1, STATIONS)}/${STATIONS} · ${total + screen.session.state.shot} strokes` +
         (b ? ` · best ${b}` : "");
+    } else if (challenge) {
+      const b = best();
+      screen.session.challengePocket = challenge.id === "pocket-tour" ? station : null;
+      screen.session.dirty = true;
+      const progress = challenge.id === "three-ball" ? `${total}/5 shots` : `station ${station + 1}/${challenge.stations} · ${total} shots`;
+      screen.hud.stake.textContent = `${challenge.name} · ${progress}${b ? ` · best ${b}` : ""}`;
     }
   };
 
@@ -124,7 +134,7 @@ export function playFree(
     rack(),
     [cue, cue],
     [{ name: me.name }, { name: "" }],
-    setup === "drill" ? "" : `${MODE_NAME[mode].toLowerCase()} · practice${shapeName ? ` · ${shapeName}` : ""}${id !== table ? " · lab physics" : ""}`,
+    setup === "drill" || challenge ? "" : `${MODE_NAME[mode].toLowerCase()} · practice${shapeName ? ` · ${shapeName}` : ""}${id !== table ? " · lab physics" : ""}`,
     {
       isLocal: () => true,
       shoot: () => {
@@ -133,6 +143,39 @@ export function playFree(
         if (setup === "drill") label();
       },
       settled: (st) => {
+        if (challenge) {
+          total++;
+          const rep = st.last;
+          const finish = (success: boolean) => {
+            if (success) {
+              const b = best();
+              if (!b || total < b) {
+                try { localStorage.setItem(bestKey, String(total)); } catch { /* storage unavailable */ }
+                toast(`${challenge.name}: ${total} shots · new personal best`, 3200);
+              } else toast(`${challenge.name}: ${total} shots · best ${b}`, 3200);
+            } else toast(`${challenge.name}: run over · try again`, 2500);
+            station = 0; total = 0;
+          };
+          if (challenge.id === "three-ball") {
+            const left = st.balls.some((b) => b.on && b.id > 0);
+            if (rep?.foul || rep?.uncalled) finish(false);
+            else if (!left) finish(true);
+            else if (total >= 5 || st.winner >= 0) finish(false);
+            else { st.turn = 0; st.fouls = [0, 0]; label(); return; }
+          } else {
+            const cleared = clearsStation(challenge.id, station, rep, screen.session.lastShot?.events ?? []);
+            if (cleared) {
+              station++;
+              if (station >= challenge.stations) finish(true);
+              else toast(`${challenge.name} · station ${station}/${challenge.stations} cleared`, 1600);
+            } else if (!st.balls.some((b) => b.on && b.id === 1) || st.winner >= 0 || rep?.offTable?.includes(1)) {
+              toast(challenge.id === "pocket-tour" ? "Wrong pocket or foul · retry this station" : "Bank the object ball off a cushion first · retry", 2000);
+            } else { st.turn = 0; st.fouls = [0, 0]; label(); return; }
+          }
+          screen.session.setState(challengeState(challenge.id, mode, id, station));
+          label();
+          return;
+        }
         if (setup === "drill") {
           const rep = st.last;
           if (rep && !rep.foul && rep.pocketed.includes(1)) {
@@ -180,8 +223,9 @@ export function playFree(
     },
     { assist, unlocks: me.unlocks },
   );
-  screen.session.sandbox = prefs.sandbox;
-  if (setup === "drill") label();
+  screen.session.sandbox = prefs.sandbox && !challenge;
+  if (setup === "drill" || challenge) label();
+  if (challenge) toast(challenge.note, 4200);
   if (shape) {
     const note = RACK_SHAPES.find((s) => s.id === shape)?.note;
     if (note) toast(`${shapeName}: ${note}`, 3600);

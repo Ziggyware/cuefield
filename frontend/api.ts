@@ -14,6 +14,10 @@ let token = load();
 
 export const hasToken = () => !!token;
 
+// Older hosted backends do not return this capability; preserve their Val Town login behavior.
+export let valTownLogin = true;
+export function setValTownLogin(enabled: boolean): void { valTownLogin = enabled; }
+
 export function setToken(t: string | null): void {
   token = t;
   try {

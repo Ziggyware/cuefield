@@ -25,7 +25,6 @@ export function bindInput(S: Session, el: HTMLElement): () => void {
   };
 
   const down = (e: PointerEvent) => {
-    if (S.replay) return void (S.replay = null);
     if (!S.canAct()) return;
     const [x, y] = world(e);
     const [cx, cy] = cue();
@@ -64,7 +63,8 @@ export function bindInput(S: Session, el: HTMLElement): () => void {
     if (mode === "none" || !S.canAct()) return;
     const [x, y] = world(e);
     if (mode === "move") {
-      const b = S.state.balls[moving], hl = S.spec.L / 2 - R, hw = S.spec.W / 2 - R;
+      const b = S.state.balls.find((ball) => ball.id === moving), hl = S.spec.L / 2 - R, hw = S.spec.W / 2 - R;
+      if (!b) return;
       const nx = Math.max(-hl, Math.min(hl, b.x + x - lx)), ny = Math.max(-hw, Math.min(hw, b.y + y - ly));
       const free = S.state.balls.every((o) => o.id === moving || !o.on || Math.hypot(o.x - nx, o.y - ny) >= 2 * R);
       if (free) Object.assign(b, { x: nx, y: ny });

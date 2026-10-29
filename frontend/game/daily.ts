@@ -59,7 +59,7 @@ export async function playDaily(ui: HTMLElement, me: Profile, exit: (p?: Profile
     fouls = 0;
     screen = mountTable(
       ui,
-      dailyRack(info.day),
+      dailyRack(info.day, info.physics ?? 1),
       [info.cue, info.cue],
       [{ name: me.name }, { name: "" }],
       "",

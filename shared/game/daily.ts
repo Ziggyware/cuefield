@@ -1,5 +1,5 @@
 import type { CueSpec, Mode } from "../catalog.ts";
-import { newGame, play } from "./engine.ts";
+import { newGame, play, type PhysicsVersion } from "./engine.ts";
 import type { GameState, StrikeCmd } from "./types.ts";
 import { validate } from "./validate.ts";
 
@@ -16,7 +16,10 @@ export function dailySeed(day: number): number {
   return (x ^ (x >>> 16)) >>> 1;
 }
 
-export const dailyRack = (day: number): GameState => newGame(DAILY.mode, DAILY.table, dailySeed(day), 0);
+export const dailyRack = (day: number, physics?: PhysicsVersion): GameState => newGame(DAILY.mode, DAILY.table, dailySeed(day), 0, physics);
+
+/** All players on one UTC day use the same physics, including late submissions after midnight. */
+export const dailyPhysics = (day: number, cutoverDay: number): PhysicsVersion => day < cutoverDay ? 1 : 2;
 
 /** Solo continuation: every stroke is seat 0's, and fouls only cost a point (no three-foul loss). */
 export function soloNext(st: GameState): GameState {
@@ -27,9 +30,9 @@ export function soloNext(st: GameState): GameState {
 export type DailyRun = { score: number; strokes: number; fouls: number } | { error: string };
 
 /** Replays a submitted run from the day's rack; identical on client and server. */
-export function scoreRun(day: number, log: unknown, cue: CueSpec): DailyRun {
+export function scoreRun(day: number, log: unknown, cue: CueSpec, physics?: PhysicsVersion): DailyRun {
   if (!Array.isArray(log) || log.length === 0 || log.length > DAILY.maxStrokes) return { error: "log" };
-  let st = dailyRack(day), fouls = 0;
+  let st = dailyRack(day, physics), fouls = 0;
   for (const raw of log) {
     const cmd = raw as StrikeCmd;
     if (!cmd || cmd.k !== "strike" || st.winner >= 0) return { error: "log" };

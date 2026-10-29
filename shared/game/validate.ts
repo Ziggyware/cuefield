@@ -17,7 +17,7 @@ export const mustCall = (st: GameState): boolean => needsCall(st);
 
 export function validate(st: GameState, c: StrikeCmd, cue: CueSpec): string | null {
   if (st.winner >= 0) return "over";
-  for (const k of ["dx", "dy", "power", "tx", "ty", "el"] as const) if (!Number.isInteger(c[k])) return k;
+  for (const k of ["dx", "dy", "power", "tx", "ty", "el"] as const) if (!Number.isSafeInteger(c[k])) return k;
   if (c.finesse !== undefined && (!Number.isInteger(c.finesse) || c.finesse < 0 || c.finesse > 1000)) return "finesse";
   for (const k of ["tipChalk", "handChalk"] as const) {
     const v = c[k];

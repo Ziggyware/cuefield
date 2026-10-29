@@ -1,4 +1,5 @@
-import { begin, settle } from "../../shared/game/engine.ts";
+import { settle } from "../../shared/game/engine.ts";
+import { highlightOf } from "../../shared/game/highlights.ts";
 import { DT, R } from "../../shared/physics/constants.ts";
 import type { Ball, SimEvent } from "../../shared/physics/types.ts";
 import { prefs } from "../prefs/store.ts";
@@ -6,8 +7,6 @@ import type { Session } from "./session.ts";
 
 /** Trail sampling: a new point once a ball has moved 4 mm. */
 const TRAIL_STEP2 = 0.004 * 0.004;
-/** Instant replay plays the physics log at this fraction of real time. */
-const REPLAY_SPEED = 0.35;
 
 function record(S: Session, balls: Ball[]): void {
   const tr = S.trails ??= new Map();
@@ -28,7 +27,7 @@ export const canVibrate = (): boolean =>
 function haptics(ev: SimEvent[]): void {
   if (!ev.length || !canVibrate()) return;
   let j = 0;
-  for (const e of ev) j = Math.max(j, e.k === "pocket" ? 0.6 : e.j);
+  for (const e of ev) j = Math.max(j, e.k === "pocket" || e.k === "off" ? 0.6 : e.k === "jump" ? 0 : e.j);
   const ms = Math.round(Math.min(40, 6 + j * 30));
   if (ms > 7) navigator.vibrate(ms);
 }
@@ -63,11 +62,19 @@ export function advanceShot(S: Session, dt: number): Ball[] {
   S.bullet += (target - S.bullet) * 0.2;
   if (Math.abs(S.bullet - target) < 0.01) S.bullet = target;
   S.acc += dt * prefs.playbackSpeed * S.bullet;
+  let orientationTime = 0;
   while (S.acc >= DT && !s.done) {
     s.step();
-    S.orient.advance(s.balls, DT);
+    orientationTime += DT;
+    // Orientations are presentation-only. Integrating at 120 Hz avoids thousands of trig calls per second.
+    if (orientationTime >= 1 / 120 || s.done) {
+      S.orient.advance(s.balls, orientationTime);
+      orientationTime = 0;
+    }
+    S.recording?.capture(s.t, s.balls, S.orient.m, s.done);
     S.acc -= DT;
   }
+  if (orientationTime) S.orient.advance(s.balls, orientationTime);
   const fresh = s.events.slice(S.heard);
   S.gfx.audio.events(fresh);
   haptics(fresh);
@@ -94,33 +101,33 @@ export function advanceShot(S: Session, dt: number): Ball[] {
   if (!s.done) return s.balls;
   const cmd = S.simCmd!, pre = S.state;
   const next = settle(pre, cmd, s);
-  S.lastShot = { pre, cmd, cue: S.cues[pre.turn] };
+  S.lastShot = { pre, cmd, cue: S.cues[pre.turn], events: s.events.slice() };
+  S.lastRecording = S.recording;
+  S.recording = null;
   S.sim = null;
   S.state = next;
   S.gutter.sync(next);
   S.syncCue();
   S.resetAim();
-  S.hooks.settled(next, cmd);
-  if (prefs.instantReplay === "auto" && next.winner < 0 && !S.sim) S.startReplay();
+  const h = S.highlightsEnabled && prefs.highlightReplay ? highlightOf(s.events, next) : null;
+  if (h && S.lastRecording) S.beginHighlight(h, () => S.hooks.settled(next, cmd));
+  else if (S.highlightsEnabled && prefs.instantReplay === "auto" && S.lastRecording && next.winner < 0) {
+    S.beginAutoReplay(() => S.hooks.settled(next, cmd));
+  } else S.hooks.settled(next, cmd);
   return S.state.balls;
 }
 
-/** Visual-only re-run of the last shot from its logged stroke; the authoritative state is untouched. */
+/** Presentation-only playback; the next turn is released only after both safety pauses. */
 export function advanceReplay(S: Session, dt: number): Ball[] {
   const r = S.replay!;
-  r.acc += dt * REPLAY_SPEED;
-  while (r.acc >= DT && !r.sim.done) {
-    r.sim.step();
-    S.orient.advance(r.sim.balls, DT);
-    r.acc -= DT;
+  const finished = r.advance(dt);
+  if (finished) {
+    S.replay = null;
+    S.onReplay?.(null);
+    S.dirty = true;
+    r.complete?.();
+    return S.state.balls;
   }
-  S.gfx.audio.events(r.sim.events.slice(r.heard));
-  r.heard = r.sim.events.length;
-  if (r.sim.done) S.replay = null;
-  return r.sim.balls;
-}
-
-export function replaySim(S: Session) {
-  const l = S.lastShot!;
-  return { sim: begin(l.pre, l.cmd, l.cue), acc: 0, heard: 0 };
+  S.onReplay?.(r);
+  return r.phase === "playing" ? r.balls : S.state.balls;
 }

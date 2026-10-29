@@ -7,11 +7,12 @@ import type { Foul, GameState, Report, ShotFacts, StrikeCmd } from "./types.ts";
 export * from "./facts.ts";
 
 function base(pre: GameState, f: ShotFacts, need: number): Report {
-  return { by: pre.turn, foul: null, pocketed: f.pocketed, keep: false, respot: [], win: -1, hit: f.first, need, uncalled: false, assign: 0, end: null };
+  return { by: pre.turn, foul: null, pocketed: f.pocketed, ...(f.offTable.length ? { offTable: f.offTable } : {}), keep: false, respot: f.offTable.filter((id) => id !== 0), win: -1, hit: f.first, need, uncalled: false, assign: 0, end: null };
 }
 
 function strokeFoul(pre: GameState, f: ShotFacts, need: number, r: Rules): Foul {
   if (f.scratch) return "scratch";
+  if (f.offTable.length) return "off-table";
   if (f.first < 0) return "no-contact";
   if (!pre.broken) return r.breakRule && f.pocketed.length === 0 && f.railBalls < 4 ? "bad-break" : null;
   if (!legalFirst(need, f.first)) return "wrong-ball";
@@ -32,6 +33,12 @@ export function judge8(pre: GameState, cmd: StrikeCmd, f: ShotFacts, r: Rules = 
   const rep = base(pre, f, need);
   rep.foul = strokeFoul(pre, f, need, r);
   const eight = f.pocketed.includes(8);
+  if (pre.broken && f.offTable.includes(8)) {
+    rep.respot = rep.respot.filter((id) => id !== 8);
+    rep.win = o;
+    rep.end = "eight-off";
+    return rep;
+  }
   if (!pre.broken) {
     if (eight) rep.respot.push(8);
     rep.keep = !rep.foul && f.pocketed.some((id) => id !== 8);

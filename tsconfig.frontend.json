@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "moduleResolution": "bundler",
+    "module": "esnext",
+    "target": "es2022",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": []
+  },
+  "files": ["frontend/main.ts", "frontend/prediction-worker.ts"]
+}

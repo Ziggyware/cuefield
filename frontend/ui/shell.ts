@@ -1,4 +1,4 @@
-import { api, type Profile } from "../api.ts";
+import { api, type Profile, valTownLogin } from "../api.ts";
 import { coins, countdown, h, once, toast } from "../dom.ts";
 import { live } from "./live.ts";
 import { pulseBar } from "./pulse.ts";
@@ -18,7 +18,7 @@ let scrollKeep: Record<string, number> = {};
 
 /** App frame: identity and coins on top, the tab's content in the middle, the action dock and tab bar pinned. */
 export function shell(p: Profile, tab: Tab, act: ShellActions): HTMLElement {
-  const name = p.account === "valtown"
+  const name = p.account === "valtown" || !valTownLogin
     ? h("span", { class: "name", text: p.name })
     : h("button", { class: "name", text: `${p.name} · log in`, onclick: () => (location.href = "/auth/login") });
   const readyAt = Date.now() + p.daily;

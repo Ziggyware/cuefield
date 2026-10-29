@@ -3,7 +3,7 @@ import { Hono } from "npm:hono@4";
 import type { Mode } from "../shared/catalog.ts";
 import { body, fail } from "./http.ts";
 import { cleanName, createGuest, playerById } from "./auth.ts";
-import { type Env, requireAuth, vtUser } from "./identity.ts";
+import { type Env, hasOAuthProvider, requireAuth, vtUser } from "./identity.ts";
 import { migrate } from "./db.ts";
 import { joinQueue, leaveQueue, pollQueue } from "./lobby.ts";
 import { closeRoom, createRoom, joinRoom, roomStatus } from "./rooms.ts";
@@ -29,7 +29,7 @@ api.post("/guest", async (c) => {
 api.get("/config", (c) => c.json({ ice: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478"] }] }));
 
 /** Who is signed in with Val Town on this browser (public; drives the login screen). */
-api.get("/session", async (c) => c.json({ user: (await vtUser(c))?.name ?? null }));
+api.get("/session", async (c) => c.json({ user: (await vtUser(c))?.name ?? null, valTownLogin: hasOAuthProvider() }));
 
 api.get("/leaderboard", async (c) => {
   await migrate();
@@ -79,7 +79,7 @@ api.post("/me/upgrade", async (c) => {
 });
 api.post("/me/solo", async (c) => {
   const b = await body(c);
-  const r = await startSolo(c.get("player"), b.mode, b.table, b.level);
+  const r = await startSolo(c.get("player"), b.mode, b.table, b.level, b.physics);
   return fail(r) ? c.json(r, 409) : c.json(r);
 });
 api.post("/me/solo/finish", async (c) => {

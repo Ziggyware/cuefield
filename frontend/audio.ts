@@ -105,7 +105,7 @@ export class Audio {
         // A dead thud plus a short rattle: the ball hit a pocket facing and stayed out.
         this.burst(260, 1.6, Math.pow(e.j / 0.9, 0.7) * 0.55, 0.07);
         this.burst(1150, 4, 0.08, 0.04, 0.045);
-      } else {
+      } else if (e.k === "pocket" || e.k === "off") {
         this.burst(180, 1.5, 0.55, 0.12);
         this.burst(900, 3, 0.18, 0.05, 0.09);
         this.burst(700, 3, 0.12, 0.05, 0.16);

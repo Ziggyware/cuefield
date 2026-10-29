@@ -82,7 +82,7 @@ export async function replayMatch(ui: HTMLElement, id: string, exit: () => void)
         { text: "⇪", fn: () => share(linkTo("replay", id), `${d.players[0]} vs ${d.players[1]} · ${MODE_NAME[d.mode]}`) },
       ],
     },
-    { assist: 1 },
+    { assist: 1, highlights: false },
   );
   const S = screen.session;
   S.deadline = 0;

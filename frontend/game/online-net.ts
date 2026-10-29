@@ -26,9 +26,9 @@ export function appHandler(screen: TableScreen, other: 0 | 1): (m: AppMsg) => vo
   const S = screen.session;
   return (m) => {
     if (m.t === "shot") {
-      const cmd = !S.sim && S.state.turn === other && m.shot === S.state.shot ? legalStroke(screen, other, m.cmd) : null;
+      const cmd = !S.sim && !S.replay && S.state.turn === other && m.shot === S.state.shot ? legalStroke(screen, other, m.cmd) : null;
       if (cmd) S.play(cmd);
-    } else if (m.t === "aim" && !S.sim && S.state.turn === other) {
+    } else if (m.t === "aim" && !S.sim && !S.replay && S.state.turn === other) {
       const a = m.a as typeof S.aim;
       if (a && Number.isFinite(a.angle)) S.remoteAim = { a, pull: Number(m.pull) || 0, place: placeOf(m.place) };
     } else if (prefs.muteOpponent) return;

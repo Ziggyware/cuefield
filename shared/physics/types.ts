@@ -75,4 +75,8 @@ export type SimEvent =
   /** Cushion or jaw-post contact. x, y is the contact point on the nose: presentation only, never rules. */
   | { k: "rail"; t: number; a: number; j: number; x: number; y: number }
   | { k: "jaw"; t: number; a: number; p: number; j: number; x: number; y: number }
-  | { k: "pocket"; t: number; a: number; p: number };
+  | { k: "pocket"; t: number; a: number; p: number }
+  /** A ball has cleared the playing surface, rather than entering a pocket. */
+  | { k: "off"; t: number; a: number; x: number; y: number }
+  /** A ball has risen far enough for a visible jump. */
+  | { k: "jump"; t: number; a: number; x: number; y: number };

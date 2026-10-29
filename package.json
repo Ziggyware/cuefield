@@ -1,13 +1,26 @@
 {
-  "name": "cuefield-dev",
+  "name": "cuefield",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 5173",
-    "test": "npx --yes tsx --test tests/rewards.test.ts tests/physics.test.ts tests/features.test.ts",
-    "typecheck": "npx --yes -p typescript tsc --noEmit --allowImportingTsExtensions --moduleResolution bundler --module esnext --target es2022 --lib es2022,dom,dom.iterable frontend/main.ts"
+    "dev": "node --import tsx --import ./server/register.mjs server/main.ts",
+    "build": "vite build",
+    "start": "node --import tsx --import ./server/register.mjs server/main.ts --production",
+    "test": "node --import tsx --import ./server/register.mjs --test tests/*.test.ts",
+    "typecheck": "tsc -p tsconfig.frontend.json && tsc -p tsconfig.server.json",
+    "pretest": "npm run build"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3",
     "vite": "^7.1.9"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.5",
+    "hono": "^4.13.14",
+    "tsx": "^4.23.15"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }
