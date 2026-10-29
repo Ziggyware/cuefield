@@ -9,6 +9,11 @@ export function bindKeys(S: Session, changed: () => void): () => void {
     changed();
     raf = requestAnimationFrame(tick);
   };
+  const guardReplay = (e: KeyboardEvent) => {
+    if (!S.replay) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  };
   const key = (e: KeyboardEvent) => {
     if ((e.target as HTMLElement).tagName === "INPUT") return;
     if (e.key === "z" || e.key === "x") return S.cycleZoom(e.key === "z" ? 1 : -1);
@@ -46,10 +51,12 @@ export function bindKeys(S: Session, changed: () => void): () => void {
     changed();
   };
 
+  addEventListener("keydown", guardReplay, true);
   addEventListener("keydown", key);
   addEventListener("keyup", keyUp);
   addEventListener("blur", blur);
   return () => {
+    removeEventListener("keydown", guardReplay, true);
     removeEventListener("keydown", key);
     removeEventListener("keyup", keyUp);
     removeEventListener("blur", blur);

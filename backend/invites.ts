@@ -1,6 +1,6 @@
 import { clampAssist, isMode, type Mode, tableById } from "../shared/catalog.ts";
 import { type Player, randomId } from "./auth.ts";
-import { one, q } from "./db.ts";
+import { one, q, transaction } from "./db.ts";
 import { INVITE_TTL_MS } from "./hub.ts";
 import { entryError } from "./lobby.ts";
 import { CORR_CLOCK_MS, createMatch } from "./match.ts";
@@ -37,23 +37,25 @@ export async function inviteStatus(p: Player, id: string, cancel = false) {
 
 /** Accepting escrows both fees and opens the match; a short challenger simply fails the accept. */
 export async function answer(p: Player, id: string, accept: boolean): Promise<{ match: string | null } | { error: string }> {
-  const claim = await q(`UPDATE invites SET status = ? WHERE id = ? AND to_id = ? AND status = 'open' RETURNING *`, [
-    accept ? "accepted" : "declined",
-    id,
-    p.id,
-  ]);
-  const r = claim[0];
-  if (!r) return { error: "invite" };
-  if (!accept) return { match: null };
-  const corr = Number(r.corr) === 1, mode = Number(r.mode);
-  if (!isMode(mode) || p.coins < (tableById(String(r.table_id))?.fee ?? Infinity)) return fault(id, "coins");
-  const made = await createMatch(String(r.from_id), p.id, mode as Mode, String(r.table_id), false, undefined, {
-    assist: clampAssist(r.assist),
-    clock: corr ? CORR_CLOCK_MS : null,
+  return transaction(async () => {
+    const claim = await q(`UPDATE invites SET status = ? WHERE id = ? AND to_id = ? AND status = 'open' RETURNING *`, [
+      accept ? "accepted" : "declined",
+      id,
+      p.id,
+    ]);
+    const r = claim[0];
+    if (!r) return { error: "invite" };
+    if (!accept) return { match: null };
+    const corr = Number(r.corr) === 1, mode = Number(r.mode);
+    if (!isMode(mode) || p.coins < (tableById(String(r.table_id))?.fee ?? Infinity)) return fault(id, "coins");
+    const made = await createMatch(String(r.from_id), p.id, mode as Mode, String(r.table_id), false, undefined, {
+      assist: clampAssist(r.assist),
+      clock: corr ? CORR_CLOCK_MS : null,
   });
   if (!made) return fault(id, "coins");
   await q(`UPDATE invites SET match_id = ? WHERE id = ?`, [made, id]);
   return { match: made };
+  });
 }
 
 async function fault(id: string, error: string) {

@@ -103,9 +103,9 @@ export function play(p: Profile, act: LobbyActions): { main: HTMLElement[]; dock
           [
             h("span", { class: "h", text: "PREDICTION" }),
             guide,
-            h("span", { class: "h", text: "SETUP · drills & trick racks" }),
+            h("span", { class: "h", text: "SETUP · mini games, drills & trick racks" }),
             setupSel,
-            h("span", { class: "k", style: "font-size:.8rem", text: "around the world keeps a local personal best; trick racks repeat the same layout until you land it." }),
+            h("span", { class: "k", style: "font-size:.8rem", text: "mini games and around the world keep local personal bests; trick racks repeat the same layout. Practice awards no coins." }),
           ],
           "start",
           () => {

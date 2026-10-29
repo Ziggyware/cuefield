@@ -8,6 +8,8 @@ export type BallInHand = 0 | 1 | 2;
 export interface GameState {
   mode: Mode;
   table: string;
+  /** Missing on pre-update matches and logs, which use version-one physics. */
+  physics?: 1 | 2;
   balls: Ball[];
   turn: 0 | 1;
   shot: number;
@@ -36,6 +38,7 @@ export type Cmd = StrikeCmd | { k: "timeout" } | { k: "concede" };
 
 export type Foul =
   | "scratch"
+  | "off-table"
   | "no-contact"
   | "wrong-ball"
   | "no-rail"
@@ -43,12 +46,14 @@ export type Foul =
   | "timeout"
   | null;
 
-export type End = "eight" | "nine" | "ten" | "points" | "eight-early" | "eight-foul" | "eight-pocket" | "three-fouls" | null;
+export type End = "eight" | "nine" | "ten" | "points" | "eight-early" | "eight-foul" | "eight-pocket" | "eight-off" | "three-fouls" | null;
 
 export interface Report {
   by: 0 | 1;
   foul: Foul;
   pocketed: number[];
+  /** Balls that left the table; object balls are respotted. Omitted in older match logs. */
+  offTable?: number[];
   keep: boolean;
   respot: number[];
   win: -1 | 0 | 1;
@@ -67,4 +72,5 @@ export interface ShotFacts {
   pocketed: number[];
   pockets: Map<number, number>;
   scratch: boolean;
+  offTable: number[];
 }

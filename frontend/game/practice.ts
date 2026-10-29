@@ -1,6 +1,6 @@
 import { awardList, matchStats, narrate, type Award } from "../ui/rewards.ts";
 import { BOT_CUES, botPot, cueById, type CueSpec, type Mode, tableById } from "../../shared/catalog.ts";
-import { newGame } from "../../shared/game/engine.ts";
+import { newGame, PHYSICS_VERSION, type PhysicsVersion } from "../../shared/game/engine.ts";
 import type { GameState, StrikeCmd } from "../../shared/game/types.ts";
 import { effectiveCue } from "../../shared/upgrades.ts";
 import { api, ApiError, type Profile } from "../api.ts";
@@ -17,6 +17,7 @@ interface SoloStart {
   id: string;
   seed: number;
   breaker: 0 | 1;
+  physics?: PhysicsVersion;
   cue: CueSpec;
 }
 
@@ -28,7 +29,7 @@ export async function playBot(ui: HTMLElement, me: Profile, mode: Mode, table: s
   const spec = tableById(table)!, pot = botPot(spec, level);
   let srv: SoloStart | null = null;
   try {
-    srv = await api<SoloStart>("/me/solo", { mode, table, level });
+    srv = await api<SoloStart>("/me/solo", { mode, table, level, physics: PHYSICS_VERSION });
   } catch (e) {
     if (e instanceof ApiError) {
       toast(e.code === "coins" ? `entry is ${coins(spec.fee)}` : e.code);
@@ -72,13 +73,19 @@ export async function playBot(ui: HTMLElement, me: Profile, mode: Mode, table: s
     const started = performance.now();
     worker.onmessage = (e: MessageEvent<{ id: number; cmd: StrikeCmd }>) => {
       if (e.data.id !== id || closed) return;
-      setTimeout(() => {
+      const present = () => {
         const S = screen.session;
         if (closed || S.sim || S.state.turn !== 1) return;
+        if (S.replay) return void setTimeout(present, 150);
         const c = e.data.cmd;
         S.remoteAim = { a: { ...S.aim, angle: Math.atan2(c.dy, c.dx) }, pull: 0.6, place: c.place ?? null };
-        setTimeout(() => !closed && S.play(e.data.cmd), 450);
-      }, Math.max(0, 900 - (performance.now() - started)));
+        setTimeout(() => {
+          if (closed || S.sim || S.state.turn !== 1) return;
+          if (S.replay) return void setTimeout(present, 150);
+          S.play(c);
+        }, 450);
+      };
+      setTimeout(present, Math.max(0, 500 - (performance.now() - started)));
     };
     worker.postMessage({ id, state: st, cue: cues[1], level, seed: (seed + st.shot * 7919) >>> 0 });
   };
@@ -113,7 +120,7 @@ export async function playBot(ui: HTMLElement, me: Profile, mode: Mode, table: s
 
   const screen = mountTable(
     ui,
-    newGame(mode, table, seed, breaker as 0 | 1),
+    newGame(mode, table, seed, breaker as 0 | 1, srv ? srv.physics ?? 1 : PHYSICS_VERSION),
     cues,
     [{ name: me.name, rating: me.rating }, { name: BOT_NAME[level] }],
     srv ? stakeText(spec.fee, pot) : "offline · unpaid",

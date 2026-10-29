@@ -74,16 +74,17 @@ export async function playOnline(ui: HTMLElement, me: Profile, id: string, exit:
   const onHead = (hd: Head) => {
     showHead(screen, hd, peer.direct);
     S.deadline = hd.deadline - (hd.now - Date.now());
-    if ((hd.version > version || hd.status === "done") && !S.sim) sync();
+    if ((hd.version > version || hd.status === "done") && !S.sim && !S.replay) sync();
   };
   const peer = new Peer(id, seat, cfg.ice, appHandler(screen, other), onHead);
 
   /** Converges the local table on the server: replays the opponent's logged stroke if it is the next one, else snaps. */
   async function sync(): Promise<void> {
-    if (syncing || S.sim) return;
+    if (syncing || S.sim || S.replay) return;
     syncing = true;
     try {
       const v = await api<MatchView>(`/match/${id}`);
+      if (S.sim || S.replay) return;
       version = v.version;
       S.deadline = v.deadline - (v.now - Date.now());
       const lc = v.last?.cmd;

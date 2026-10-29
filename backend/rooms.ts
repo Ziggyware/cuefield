@@ -1,6 +1,6 @@
 import { clampAssist, type Mode, tableById } from "../shared/catalog.ts";
 import { type Player, randomId } from "./auth.ts";
-import { one, q } from "./db.ts";
+import { one, q, transaction } from "./db.ts";
 import { entryError } from "./lobby.ts";
 import { CORR_CLOCK_MS, createMatch } from "./match.ts";
 
@@ -41,18 +41,19 @@ export async function closeRoom(p: Player, code: string): Promise<void> {
 }
 
 export async function joinRoom(p: Player, raw: string): Promise<{ match: string } | { error: string }> {
-  const code = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const r = await one(`SELECT * FROM rooms WHERE code = ? AND created > ?`, [code, Date.now() - ROOM_TTL_MS]);
-  if (!r) return { error: "room" };
-  if (r.player_id === p.id) return { error: "self" };
-  const spec = tableById(String(r.table_id))!;
-  if (p.coins < spec.fee) return { error: "coins" };
-  const id = randomId(10);
-  const claimed = await q(`UPDATE rooms SET match_id = ? WHERE code = ? AND match_id IS NULL RETURNING code`, [id, code]);
-  if (!claimed.length) return { error: "room" };
-  const made = await createMatch(String(r.player_id), p.id, Number(r.mode) as Mode, spec.id, false, id, {
-    assist: clampAssist(r.assist ?? spec.assist),
-    clock: Number(r.corr) === 1 ? CORR_CLOCK_MS : null,
+  return transaction(async () => {
+    const code = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const r = await one(`SELECT * FROM rooms WHERE code = ? AND created > ?`, [code, Date.now() - ROOM_TTL_MS]);
+    if (!r) return { error: "room" };
+    if (r.player_id === p.id) return { error: "self" };
+    const spec = tableById(String(r.table_id))!;
+    if (p.coins < spec.fee) return { error: "coins" };
+    const id = randomId(10);
+    const claimed = await q(`UPDATE rooms SET match_id = ? WHERE code = ? AND match_id IS NULL RETURNING code`, [id, code]);
+    if (!claimed.length) return { error: "room" };
+    const made = await createMatch(String(r.player_id), p.id, Number(r.mode) as Mode, spec.id, false, id, {
+      assist: clampAssist(r.assist ?? spec.assist),
+      clock: Number(r.corr) === 1 ? CORR_CLOCK_MS : null,
   });
   if (!made) {
     await q(`UPDATE rooms SET match_id = NULL WHERE code = ?`, [code]);
@@ -60,4 +61,5 @@ export async function joinRoom(p: Player, raw: string): Promise<{ match: string 
   }
   await q(`DELETE FROM queue WHERE player_id IN (?, ?) AND match_id IS NULL`, [r.player_id, p.id]);
   return { match: made };
+  });
 }

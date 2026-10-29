@@ -1,8 +1,13 @@
 import { cueById } from "../shared/catalog.ts";
-import { DAILY, dailySeed, dayOf, scoreRun } from "../shared/game/daily.ts";
+import { DAILY, dailyPhysics, dailySeed, dayOf, scoreRun } from "../shared/game/daily.ts";
 import { effectiveCue } from "../shared/upgrades.ts";
 import type { Player } from "./auth.ts";
-import { one, q } from "./db.ts";
+import { one, q, transaction } from "./db.ts";
+
+async function physicsFor(day: number) {
+  const config = await one(`SELECT value FROM game_config WHERE name = 'physics-v2-day'`);
+  return dailyPhysics(day, Number(config?.value ?? Number.MAX_SAFE_INTEGER));
+}
 
 async function board(day: number) {
   const rows = await q(
@@ -24,6 +29,7 @@ export async function dailyInfo(p: Player) {
   return {
     day,
     seed: dailySeed(day),
+    physics: await physicsFor(day),
     mode: DAILY.mode,
     table: DAILY.table,
     reward: DAILY.reward,
@@ -41,19 +47,21 @@ export async function dailyInfo(p: Player) {
 export async function finishDaily(p: Player, day: unknown, log: unknown) {
   const today = dayOf(Date.now()), late = dayOf(Date.now() - 3_600_000);
   if (day !== today && day !== late) return { error: "day" };
-  const run = scoreRun(day, log, effectiveCue(cueById(p.cue), p.upgrades));
+  const run = scoreRun(day, log, effectiveCue(cueById(p.cue), p.upgrades), await physicsFor(day));
   if ("error" in run) return run;
-  const prev = await one(`SELECT score FROM daily_runs WHERE day = ? AND player_id = ?`, [day, p.id]);
-  let paid = 0;
-  if (!prev) {
-    const ins = await q(`INSERT OR IGNORE INTO daily_runs (day, player_id, score, created) VALUES (?,?,?,?) RETURNING day`, [day, p.id, run.score, Date.now()]);
-    if (ins.length) {
-      paid = DAILY.reward;
-      await q(`UPDATE players SET coins = coins + ?, earned = earned + ?, xp = xp + ? WHERE id = ?`, [paid, paid, paid, p.id]);
+  return transaction(async () => {
+    const prev = await one(`SELECT score FROM daily_runs WHERE day = ? AND player_id = ?`, [day, p.id]);
+    let paid = 0;
+    if (!prev) {
+      const ins = await q(`INSERT OR IGNORE INTO daily_runs (day, player_id, score, created) VALUES (?,?,?,?) RETURNING day`, [day, p.id, run.score, Date.now()]);
+      if (ins.length) {
+        paid = DAILY.reward;
+        await q(`UPDATE players SET coins = coins + ?, earned = earned + ?, xp = xp + ? WHERE id = ?`, [paid, paid, paid, p.id]);
+      }
+    } else if (run.score < Number(prev.score)) {
+      await q(`UPDATE daily_runs SET score = ?, created = ? WHERE day = ? AND player_id = ?`, [run.score, Date.now(), day, p.id]);
     }
-  } else if (run.score < Number(prev.score)) {
-    await q(`UPDATE daily_runs SET score = ?, created = ? WHERE day = ? AND player_id = ?`, [run.score, Date.now(), day, p.id]);
-  }
-  const best = Math.min(run.score, prev ? Number(prev.score) : Infinity);
-  return { ...run, best, rank: await rankOf(day, best), reward: paid };
+    const best = Math.min(run.score, prev ? Number(prev.score) : Infinity);
+    return { ...run, best, rank: await rankOf(day, best), reward: paid };
+  });
 }

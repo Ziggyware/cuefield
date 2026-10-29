@@ -18,6 +18,7 @@ export interface OverlayFrame {
   /** Balls the rules allow the cue ball to contact first. */
   targets: [number, number][];
   pockets: { called: number; pulse: number } | null;
+  challengePocket: number | null;
   cone: { x: number; y: number; angle: number; sigma: number; len: number } | null;
   trails: Map<number, [number, number][]> | null;
   /** Chalk scuffs left on the cushions this rack. */
@@ -68,6 +69,17 @@ export class Overlay {
         g.lineWidth = i === called ? 2.5 : 1;
         g.stroke();
       });
+    }
+    if (f.challengePocket !== null) {
+      const p = geo.pockets[f.challengePocket];
+      if (p) {
+        const [x, y] = v.toScreen(p.x, p.y);
+        g.beginPath();
+        g.arc(x, y, p.mouthHalf * v.s * 1.6 + 4, 0, Math.PI * 2);
+        g.strokeStyle = A; g.lineWidth = 2.5; g.setLineDash([5, 3]); g.stroke(); g.setLineDash([]);
+        g.fillStyle = A; g.font = "bold 11px sans-serif"; g.textAlign = "center";
+        g.fillText("TARGET", x, y - p.mouthHalf * v.s * 1.6 - 8);
+      }
     }
     if (f.bankFrom && prefs.bankMirror) banks(g, v, geo, L, W, f.bankFrom, withAlpha(A, 0.9));
     if (f.cone && prefs.spreadCone) cone(g, v, f.cone, A);

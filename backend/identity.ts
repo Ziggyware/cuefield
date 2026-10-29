@@ -1,5 +1,4 @@
 import type { Context, Next } from "npm:hono@4";
-import { getOAuthUserData } from "https://esm.town/v/std/oauth/middleware.ts";
 import { cleanName, createGuest, type Player, sha256, toPlayer } from "./auth.ts";
 import { migrate, one, q } from "./db.ts";
 
@@ -14,11 +13,22 @@ const bearer = (c: Context) => {
   return t.length === 64 ? t : null;
 };
 
-/** Val Town session user, if the request carries one. */
+type OAuthIdentity = { id: string; username?: string | null };
+let oauthProvider: ((request: Request) => Promise<OAuthIdentity | null>) | null = null;
+
+/** The hosted entrypoint supplies Val Town OAuth; standalone deliberately has no provider. */
+export function configureOAuthProvider(provider: (request: Request) => Promise<OAuthIdentity | null>): void {
+  oauthProvider = provider;
+}
+
+export const hasOAuthProvider = () => oauthProvider !== null;
+
+/** Val Town session user, if the configured provider recognizes the request. */
 export async function vtUser(c: Context): Promise<{ id: string; name: string } | null> {
-  const s = await getOAuthUserData(c.req.raw).catch(() => null);
-  if (!s?.user) return null;
-  return { id: s.user.id, name: cleanName(s.user.username ?? "") ?? `vt-${s.user.id.slice(0, 6)}` };
+  if (!oauthProvider) return null;
+  const user = await oauthProvider(c.req.raw).catch(() => null);
+  if (!user) return null;
+  return { id: user.id, name: cleanName(user.username ?? "") ?? `vt-${user.id.slice(0, 6)}` };
 }
 
 /**

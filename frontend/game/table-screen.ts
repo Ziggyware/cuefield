@@ -47,11 +47,12 @@ export function mountTable(
   stake: string,
   hooks: SessionHooks,
   ev: Omit<HudEvents, "mute">,
-  opts: { assist?: AssistLevel; unlocks?: string[] } = {},
+  opts: { assist?: AssistLevel; unlocks?: string[]; highlights?: boolean } = {},
 ): TableScreen {
   setWide(true);
   const g = graphics();
   const session = new Session(state, cues, g, hooks, opts.assist);
+  session.highlightsEnabled = opts.highlights !== false;
   // The HUD reads the effective cue so each player's upgrade badges are visible to the whole table.
   seats[0].cue ??= cues[0];
   seats[1].cue ??= cues[1];
@@ -74,7 +75,23 @@ export function mountTable(
   /** Nerves: the heartbeat vignette over the whole table. */
   const nerves = h("div", { class: "nerves" });
   session.controls.attach(hud.chalk, hud.cue);
-  const root = h("div", { style: "position:absolute;inset:0;pointer-events:none" }, nerves, hud.root, session.controls.root, session.gutter.root, commentary);
+  const replayTitle = h("strong"), replayNote = h("span");
+  const shield = h("div", { class: "replay-guard", role: "status", "aria-live": "polite", "aria-hidden": "true" },
+    h("div", { class: "replay-card" }, h("span", { class: "replay-eyebrow", text: "INSTANT REPLAY" }), replayTitle, replayNote));
+  const swallow = (e: Event) => { e.preventDefault(); e.stopPropagation(); };
+  for (const type of ["pointerdown", "pointerup", "click", "dblclick", "contextmenu"]) shield.addEventListener(type, swallow);
+  session.onReplay = (r) => {
+    if (shield.classList.contains("show") !== !!r) {
+      shield.classList.toggle("show", !!r);
+      shield.setAttribute("aria-hidden", String(!r));
+    }
+    if (!r) return;
+    const note = r.phase === "before" ? `Replay starts in ${Math.ceil(2 - r.elapsed)}s · controls paused` :
+      r.phase === "after" ? `Returning in ${Math.ceil(2 - r.elapsed)}s · controls paused` : "SLOW MOTION · controls paused";
+    if (replayTitle.textContent !== r.label) replayTitle.textContent = r.label;
+    if (replayNote.textContent !== note) replayNote.textContent = note;
+  };
+  const root = h("div", { style: "position:absolute;inset:0;pointer-events:none" }, nerves, hud.root, session.controls.root, session.gutter.root, commentary, shield);
   ui.replaceChildren(root);
   // The gutter measures its label from layout, so re-slot after the first paint.
   requestAnimationFrame(() => session.gutter.layout());
@@ -140,7 +157,7 @@ export function mountTable(
     }
     const left = session.deadline ? session.deadline - Date.now() : Infinity;
     const frac = session.deadline ? left / session.clockSpan : 1;
-    hud.update(session.state, !session.sim, frac);
+    hud.update(session.state, !session.sim && !session.replay, frac);
     const can = session.canAct();
     // Nerves: the table pulses and your heart does with it as the clock runs down.
     if (prefs.nerves && can && frac < 0.4 && !document.hidden) {

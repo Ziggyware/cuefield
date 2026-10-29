@@ -817,3 +817,32 @@ body.wide.port #ui {
     opacity: .35;
   }
 }
+
+/* A transparent input shield prevents stray taps throughout both replay safety pauses. */
+.replay-guard {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: none;
+  pointer-events: auto;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: clamp(70px, 15vh, 130px);
+  cursor: wait;
+  touch-action: none;
+}
+.replay-guard.show { display: flex; }
+.replay-card {
+  display: grid;
+  gap: 3px;
+  min-width: 220px;
+  padding: 9px 16px;
+  border: 1px solid var(--fg);
+  background: var(--panel);
+  box-shadow: 0 6px 24px rgba(0,0,0,.35);
+  text-align: center;
+  color: var(--ink);
+}
+.replay-eyebrow { color: var(--fg-text); font-size: .65rem; letter-spacing: .15em; }
+.replay-card strong { font-size: .92rem; letter-spacing: .06em; }
+.replay-card span:last-child { color: var(--dim); font-size: .7rem; }

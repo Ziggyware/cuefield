@@ -27,7 +27,7 @@ export const GROUPS_A: Group[] = [
       {
         k: "guidePrecision",
         label: "prediction accuracy",
-        note: "Path sampling: 12 traces every 0.5 ms physics step.",
+        note: "Higher values draw more points on the same physics-accurate path.",
         c: { kind: "range", min: 1, max: 12, step: 1, fmt: (v) => `${v}/12` },
       },
       {
@@ -55,7 +55,8 @@ export const GROUPS_A: Group[] = [
   {
     title: "MOTION",
     defs: [
-      { k: "playbackSpeed", label: "shot playback", note: "Slow every shot down in real time.", c: { kind: "range", min: 0.25, max: 1, step: 0.05, fmt: x } },
+      { k: "playbackSpeed", label: "shot playback", note: "Choose the speed of normal shot animation; physics is unchanged.", c: { kind: "range", min: 0.25, max: 2, step: 0.05, fmt: x } },
+      { k: "highlightReplay", label: "special-event replays", note: "Free zoomed slow motion for jumps, off-table balls, multi-pots and wins, with a two-second safety pause before and after.", c: T },
       {
         k: "instantReplay",
         label: "instant replay",

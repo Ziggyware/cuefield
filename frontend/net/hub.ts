@@ -61,6 +61,7 @@ export interface ReplayData {
 
 export interface DailyInfo {
   day: number;
+  physics?: 1 | 2;
   seed: number;
   mode: Mode;
   table: string;

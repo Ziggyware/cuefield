@@ -1,8 +1,8 @@
+import { strokeSigma } from "../../shared/game/engine.ts";
 import { legalFirst, target } from "../../shared/game/rules.ts";
 import { mustCall } from "../../shared/game/validate.ts";
 import type { Ball } from "../../shared/physics/types.ts";
 import { R } from "../../shared/physics/constants.ts";
-import { preview } from "../aim.ts";
 import { RAIL_FADE } from "../render/aids.ts";
 import { cueLevelTotal } from "../../shared/upgrades.ts";
 import type { OverlayFrame } from "../render/overlay.ts";
@@ -21,8 +21,11 @@ export function startLoop(S: Session): void {
     last = now;
     const v = S.view;
     const { w, h } = size();
-    const cb = S.sim?.balls[0] ?? S.replay?.sim.balls[0] ?? S.state.balls[0];
-    v.fit(S.spec.L, S.spec.W, w, h, insets(S.top), S.zoom, S.place ?? [cb.x, cb.y]);
+    const replay = S.replay;
+    const cb = S.sim?.balls[0] ?? S.state.balls[0];
+    const focusBall = replay?.balls.find((b) => b.id === replay.ball && b.on);
+    const focus = replay?.phase === "playing" ? (focusBall ? [focusBall.x, focusBall.y] as [number, number] : replay.focus) : S.place ?? [cb.x, cb.y] as [number, number];
+    v.fit(S.spec.L, S.spec.W, w, h, insets(S.top), replay?.phase === "playing" ? 2.2 : S.zoom, focus);
     S.controls.setEnabled(S.canAct());
     const live = !!(S.sim || S.replay);
     const rings = S.assist > 1 && S.state.broken && prefs.ringColor === "spectrum";
@@ -33,7 +36,7 @@ export function startLoop(S: Session): void {
     const s2 = animated ? "" : signature(S, w, h);
     if (animated || s2 !== sig) {
       const balls = S.sim ? advanceShot(S, dt) : S.replay ? advanceReplay(S, dt) : withCueAt(S.state.balls, handPos(S));
-      S.gfx.renderer.draw(v, balls, S.orient.m);
+      S.gfx.renderer.draw(v, balls, S.replay?.phase === "playing" ? S.replay.orientation : S.orient.m);
       S.gfx.overlay.draw(v, overlayFrame(S, now, balls), S.geo, S.spec.L, S.spec.W);
       v.settle();
       sig = animated ? "" : signature(S, w, h);
@@ -60,10 +63,10 @@ function withCueAt(balls: Ball[], at: [number, number] | null): Ball[] {
 
 /** ±2σ stroke error at the pending power, out to the predicted contact (or the guide length). */
 function coneOf(S: Session, at: [number, number]): OverlayFrame["cone"] {
-  const cue = S.myCue(), p = Math.pow(S.controls.pull || 0.5, prefs.powerCurve);
+  const cue = S.myCue();
   const g = S.prev?.ghost;
   const len = g ? Math.hypot(g[0] - at[0], g[1] - at[1]) + R : Math.max(0.5, cue.guide);
-  return { x: at[0], y: at[1], angle: S.aim.angle, sigma: cue.wobble * (0.3 + 0.7 * p), len };
+  return { x: at[0], y: at[1], angle: S.aim.angle, sigma: strokeSigma(S.cmdFor(S.controls.pull || 0.5), cue, S.state.physics ?? 1), len };
 }
 
 function overlayFrame(S: Session, now: number, balls: Ball[]): OverlayFrame {
@@ -74,9 +77,10 @@ function overlayFrame(S: Session, now: number, balls: Ball[]): OverlayFrame {
     stick: null,
     place: null,
     pockets: null,
+    challengePocket: S.canAct() ? S.challengePocket : null,
     targets: [],
     cone: null,
-    trails: S.trails,
+    trails: S.replay ? null : S.trails,
     railMarks: S.railMarks,
     heat: prefs.pocketHeat ? S.heat : null,
     moving,
@@ -86,10 +90,19 @@ function overlayFrame(S: Session, now: number, balls: Ball[]): OverlayFrame {
   };
   if (moving) return f;
   if (S.canAct()) {
-    if (S.dirty && now - S.prevAt > (S.assist === 4 ? 110 : 40)) {
+    if (S.dirty && now - S.prevAt > 32) {
       S.prevAt = now;
-      S.prev = S.placeOk() ? preview(S.state, S.cmdFor(S.controls.pull || 0.5), S.myCue(), S.assist) : null;
       S.dirty = false;
+      S.prev = null;
+      S.prevVersion++;
+      if (S.placeOk() && S.assist > 1) {
+        S.predictor.request({ state: S.state, cmd: S.cmdFor(S.controls.pull || 0.5), cue: S.myCue(), level: S.assist,
+          table: S.spec, options: { guideReach: prefs.guideReach, guidePrecision: prefs.guidePrecision } }, (result) => {
+          if (!S.running || !S.canAct() || S.dirty) return;
+          S.prev = result;
+          S.prevVersion++;
+        });
+      } else S.predictor.invalidate();
     }
     const at = S.place ?? [cb.x, cb.y];
     f.preview = S.prev;
@@ -109,7 +122,7 @@ function overlayFrame(S: Session, now: number, balls: Ball[]): OverlayFrame {
     if (S.assist > 1 && S.state.broken) {
       const need = target(S.state);
       f.targets = S.state.balls.filter((b) => b.on && legalFirst(need, b.id)).map((b) => [b.x, b.y]);
-      const t = S.prev && S.prev.target > 0 ? S.state.balls[S.prev.target] : null;
+      const t = S.prev && S.prev.target > 0 ? S.state.balls.find((b) => b.id === S.prev!.target) : null;
       if (t) f.bankFrom = [t.x, t.y];
     }
     if (mustCall(S.state)) f.pockets = { called: S.call, pulse: 0.5 + 0.5 * Math.sin(now / 180) };

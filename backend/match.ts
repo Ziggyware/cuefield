@@ -3,7 +3,7 @@ import { effectiveCue } from "../shared/upgrades.ts";
 import { newGame } from "../shared/game/engine.ts";
 import type { GameState } from "../shared/game/types.ts";
 import { randomId } from "./auth.ts";
-import { one, q, type Row } from "./db.ts";
+import { one, q, transaction, type Row } from "./db.ts";
 
 /** Connection setup grace before the first shot clock starts. */
 export const OPEN_GRACE_MS = 20_000;
@@ -85,46 +85,48 @@ export async function createMatch(
 ): Promise<string | null> {
   const spec = tableById(table);
   if (!spec || a === b) return null;
-  const fee = spec.fee;
-  if (fee > 0) {
-    const paid = await q(
-      `UPDATE players SET coins = coins - ? WHERE id IN (?, ?) AND (SELECT COUNT(*) FROM players WHERE id IN (?, ?) AND coins >= ?) = 2 RETURNING id`,
-      [fee, a, b, a, b, fee],
+  return transaction(async () => {
+    const fee = spec.fee;
+    if (fee > 0) {
+      const paid = await q(
+        `UPDATE players SET coins = coins - ? WHERE id IN (?, ?) AND (SELECT COUNT(*) FROM players WHERE id IN (?, ?) AND coins >= ?) = 2 RETURNING id`,
+        [fee, a, b, a, b, fee],
+      );
+      if (paid.length !== 2) return null;
+    }
+    const cues = await q(`SELECT id, cue, upgrades FROM players WHERE id IN (?, ?)`, [a, b]);
+    const cueOf = (pid: string) => {
+      const r = cues.find((x) => x.id === pid);
+      return JSON.stringify(effectiveCue(cueById(String(r?.cue ?? "")), JSON.parse(String(r?.upgrades ?? "{}"))));
+    };
+    const seed = crypto.getRandomValues(new Uint32Array(1))[0];
+    const breaker = (seed & 1) as 0 | 1;
+    const state = newGame(mode, table, seed >>> 1, breaker);
+    const now = Date.now(), clock = opts.clock ?? null;
+    await q(
+      `INSERT INTO matches (id, mode, table_id, p0, p1, cue0, cue1, stake, ranked, assist, clock, state, init, log, version, deadline, seen0, seen1, status, created)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,'live',?)`,
+      [
+        id,
+        mode,
+        table,
+        a,
+        b,
+        cueOf(a),
+        cueOf(b),
+        fee,
+        ranked ? 1 : 0,
+        opts.assist ?? null,
+        clock,
+        JSON.stringify(state),
+        JSON.stringify(state),
+        "[]",
+        now + OPEN_GRACE_MS + (clock ?? rulesOf(table).clock),
+        now,
+        now,
+        now,
+      ],
     );
-    if (paid.length !== 2) return null;
-  }
-  const cues = await q(`SELECT id, cue, upgrades FROM players WHERE id IN (?, ?)`, [a, b]);
-  const cueOf = (pid: string) => {
-    const r = cues.find((x) => x.id === pid);
-    return JSON.stringify(effectiveCue(cueById(String(r?.cue ?? "")), JSON.parse(String(r?.upgrades ?? "{}"))));
-  };
-  const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-  const breaker = (seed & 1) as 0 | 1;
-  const state = newGame(mode, table, seed >>> 1, breaker);
-  const now = Date.now(), clock = opts.clock ?? null;
-  await q(
-    `INSERT INTO matches (id, mode, table_id, p0, p1, cue0, cue1, stake, ranked, assist, clock, state, init, log, version, deadline, seen0, seen1, status, created)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,'live',?)`,
-    [
-      id,
-      mode,
-      table,
-      a,
-      b,
-      cueOf(a),
-      cueOf(b),
-      fee,
-      ranked ? 1 : 0,
-      opts.assist ?? null,
-      clock,
-      JSON.stringify(state),
-      JSON.stringify(state),
-      "[]",
-      now + OPEN_GRACE_MS + (clock ?? rulesOf(table).clock),
-      now,
-      now,
-      now,
-    ],
-  );
-  return id;
+    return id;
+  });
 }

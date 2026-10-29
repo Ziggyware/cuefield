@@ -1,20 +1,48 @@
-import { sqlite } from "https://esm.town/v/std/sqlite/main.ts";
 import { MP_COLS, MP_INDEXES, MP_TABLES } from "./schema-mp.ts";
 
-export { sqlite };
-
 export type Row = Record<string, unknown>;
+export type Statement = string | { sql: string; args?: unknown[] };
+
+/** The same queries run against Val Town's SQLite or the standalone SQLite driver. */
+export interface SqliteDriver {
+  execute(statement: Statement): Promise<{ rows: unknown }>;
+  batch(statements: Statement[]): Promise<unknown>;
+  transaction?<T>(work: () => Promise<T>): Promise<T>;
+}
+
+let driver: SqliteDriver | undefined;
+let ready: Promise<void> | null = null;
+
+/** Configure once, before accepting requests. Reconfiguration resets the migration cache. */
+export function configureDatabase(next: SqliteDriver): void {
+  driver = next;
+  ready = null;
+}
+
+function database(): SqliteDriver {
+  if (!driver) throw new Error("SQLite driver is not configured");
+  return driver;
+}
+
+export const sqlite: SqliteDriver = {
+  execute: (statement) => database().execute(statement),
+  batch: (statements) => database().batch(statements),
+};
+
+/** Standalone SQLite can group a multi-step settlement; hosted drivers retain their existing behavior. */
+export function transaction<T>(work: () => Promise<T>): Promise<T> {
+  const d = database();
+  return d.transaction ? d.transaction(work) : work();
+}
 
 export async function q(sql: string, args: unknown[] = []): Promise<Row[]> {
-  const r = await sqlite.execute({ sql, args: args as never });
+  const r = await sqlite.execute({ sql, args });
   return r.rows as Row[];
 }
 
 export async function one(sql: string, args: unknown[] = []): Promise<Row | undefined> {
   return (await q(sql, args))[0];
 }
-
-let ready: Promise<void> | null = null;
 
 export function migrate(): Promise<void> {
   ready ??= (async () => {
@@ -118,6 +146,7 @@ export function migrate(): Promise<void> {
       ["solo", "won INTEGER NOT NULL DEFAULT -1"],
       ["solo", "pot INTEGER NOT NULL DEFAULT 0"],
       ["solo", "ended INTEGER NOT NULL DEFAULT 0"],
+      ["solo", "physics INTEGER NOT NULL DEFAULT 1"],
       ["rooms", "assist INTEGER"],
       ["matches", "assist INTEGER"],
       ["players", "vt_id TEXT"],
@@ -126,8 +155,8 @@ export function migrate(): Promise<void> {
     for (const [t, col] of cols) {
       try {
         await sqlite.execute(`ALTER TABLE ${t} ADD COLUMN ${col}`);
-      } catch {
-        /* column already present */
+      } catch (error) {
+        if (!/duplicate column name/i.test(String(error))) throw error;
       }
     }
     await sqlite.batch([
@@ -137,6 +166,7 @@ export function migrate(): Promise<void> {
       ...MP_INDEXES,
       `UPDATE players SET coins = MAX(0, coins) WHERE coins < 0`,
       `UPDATE players SET xp = MAX(0, coins) WHERE xp < 0`,
+      `CREATE TABLE IF NOT EXISTS game_config (name TEXT PRIMARY KEY, value INTEGER NOT NULL)`,
       `CREATE TABLE IF NOT EXISTS reward_matches (seq INTEGER PRIMARY KEY AUTOINCREMENT, player_id TEXT NOT NULL, match_id TEXT NOT NULL, day INTEGER NOT NULL, won INTEGER NOT NULL, pots INTEGER NOT NULL, stats TEXT NOT NULL, UNIQUE(player_id, match_id))`,
       `CREATE INDEX IF NOT EXISTS reward_matches_player ON reward_matches(player_id, seq DESC)`,
       `CREATE INDEX IF NOT EXISTS reward_matches_day ON reward_matches(player_id, day)`,
@@ -145,6 +175,9 @@ export function migrate(): Promise<void> {
       `CREATE TRIGGER IF NOT EXISTS coins_floor_update BEFORE UPDATE OF coins ON players WHEN NEW.coins < 0 BEGIN SELECT RAISE(ABORT, 'negative-coins'); END`,
       `CREATE TRIGGER IF NOT EXISTS coins_floor_insert BEFORE INSERT ON players WHEN NEW.coins < 0 BEGIN SELECT RAISE(ABORT, 'negative-coins'); END`,
     ]);
+    // Keep the already-started UTC daily rack on version one; the next day switches everyone together.
+    const today = Math.floor(Date.now() / 86_400_000);
+    await q(`INSERT OR IGNORE INTO game_config (name, value) SELECT 'physics-v2-day', CASE WHEN EXISTS (SELECT 1 FROM players) THEN ? ELSE ? END`, [today + 1, today]);
   })().catch((e) => {
     ready = null;
     throw e;

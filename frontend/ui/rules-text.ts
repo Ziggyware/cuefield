@@ -29,6 +29,8 @@ function foulText(rep: Report): string {
   switch (rep.foul) {
     case "scratch":
       return "foul: cue ball pocketed";
+    case "off-table":
+      return "foul: ball off the table · object balls respotted";
     case "no-contact":
       return "foul: cue ball touched nothing";
     case "wrong-ball":
@@ -49,6 +51,7 @@ export const END_TEXT: Record<string, string> = {
   nine: "9 pocketed",
   ten: "10 pocketed",
   points: `${ROTATION_TARGET} points reached`,
+  "eight-off": "8 ball left the table",
   "eight-early": "8 pocketed before the group was cleared",
   "eight-foul": "8 pocketed on a foul",
   "eight-pocket": "8 went in an uncalled pocket",

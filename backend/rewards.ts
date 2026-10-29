@@ -16,12 +16,19 @@ export async function settleRewards(player: string, match: string, won: boolean,
       if (b.daily) return Number(daily?.[b.metric === "win" ? "wins" : b.metric] ?? 0) >= b.target;
       if (b.metric === "streak") return won && streak > 0 && streak % b.target === 0;
       if (b.metric === "win") return won;
+      if (b.metric === "plays") return true;
       if (b.metric === "clean") return won && stats.fouls === 0;
       return Number(stats[b.metric as keyof RackStats] ?? 0) >= b.target;
     }).map((b) => ({
       sql: `INSERT OR IGNORE INTO reward_awards (player_id, reward_key, match_id, title, amount) VALUES (?,?,?,?,?)`,
       args: [player, `${b.daily ? `day:${day}` : match}:${b.id}`, match, b.title, b.amount],
     }));
+    if (Number.isSafeInteger(stats.multiBonus) && (stats.multiBonus ?? 0) > 0) {
+      awards.push({
+        sql: `INSERT OR IGNORE INTO reward_awards (player_id, reward_key, match_id, title, amount) VALUES (?,?,?,?,?)`,
+        args: [player, `${match}:multi-shots`, match, "Multi-ball shot bonuses", stats.multiBonus!],
+      });
+    }
     if (awards.length) await sqlite.batch(awards);
   }
   return q(`SELECT title, amount FROM reward_awards WHERE player_id = ? AND match_id = ?`, [player, match]);

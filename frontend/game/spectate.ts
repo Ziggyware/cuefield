@@ -80,9 +80,10 @@ export async function watchMatch(ui: HTMLElement, id: string, exit: () => void, 
   async function tick(): Promise<void> {
     clearTimeout(timer);
     if (!alive) return;
-    if (!S.sim) {
+    if (!S.sim && !S.replay) {
       try {
-        apply(await get(cursor));
+        const view = await get(cursor);
+        if (!S.sim && !S.replay) apply(view);
       } catch {
         /* transient: retry on the next tick */
       }

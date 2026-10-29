@@ -1,4 +1,4 @@
-import { BOUNTIES, bragging, emptyStats, type RackStats } from "../../shared/rewards.ts";
+import { BOUNTIES, MULTIPOT_PER_EXTRA, bragging, emptyStats, type RackStats } from "../../shared/rewards.ts";
 import type { GameState } from "../../shared/game/types.ts";
 import { api, type Profile } from "../api.ts";
 import { coins, h } from "../dom.ts";
@@ -36,7 +36,7 @@ export function rewardsPanel(p: Profile): HTMLElement {
     h("progress", { max: prog.next - prog.floor, value: prog.xp - prog.floor, "aria-label": "Level progress" }),
     h("span", { class: "k", text: `${prog.next - prog.xp} XP to level ${prog.level + 1} · Every awarded coin earns 1 XP. Spending and fines never remove XP.` }),
     h("h3", { text: "BOUNTY BOARD" }),
-    h("p", { class: "k", text: "Automatically paid after server-verified online and bot matches. Practice is unrewarded. Win streaks span both modes; losses reset them. Login and daily rack rewards also earn XP." }),
+    h("p", { class: "k", text: `Automatically paid after server-verified online and bot matches. Practice is unrewarded. Every legal multi-pot earns ${MULTIPOT_PER_EXTRA}c per extra ball, on every shot. Win streaks span both modes; losses reset them. Login and daily rack rewards also earn XP.` }),
     goals);
 }
 

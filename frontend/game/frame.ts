@@ -21,7 +21,7 @@ onPref(() => prefsVersion++);
 /** Everything that changes what is drawn while the table is still; equal signatures skip the frame. */
 export function signature(S: Session, w: number, h: number): string {
   const r = S.remoteAim, p = S.place;
-  return `${w}x${h}|${prefsVersion}|${S.state.shot}|${S.aim.angle}|${S.aim.tx},${S.aim.ty},${S.aim.elev}|${S.controls.pull}|${p?.join()}|${S.call}|${
+  return `${w}x${h}|${prefsVersion}|${S.prevVersion}|${S.state.shot}|${S.aim.angle}|${S.aim.tx},${S.aim.ty},${S.aim.elev}|${S.controls.pull}|${p?.join()}|${S.call}|${
     r ? `${r.a.angle},${r.pull},${r.place?.join()}` : ""
   }|${S.zoom}|${S.canAct()}|${S.state.balls.map((b) => b.on ? b.x + b.y : 0).join()}`;
 }

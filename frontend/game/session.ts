@@ -3,7 +3,9 @@ import { begin, geometry } from "../../shared/game/engine.ts";
 import type { GameState, StrikeCmd } from "../../shared/game/types.ts";
 import { mustCall, placeError } from "../../shared/game/validate.ts";
 import type { Sim } from "../../shared/physics/sim.ts";
-import { replaySim } from "./motion.ts";
+import { HighlightReplay, ShotRecording } from "./highlight.ts";
+import type { Highlight } from "../../shared/game/highlights.ts";
+import type { SimEvent } from "../../shared/physics/types.ts";
 import type { Geometry } from "../../shared/physics/types.ts";
 import { type Aim, maxElev, type Preview, toCmd } from "../aim.ts";
 import { toast } from "../dom.ts";
@@ -12,7 +14,9 @@ import { Controls } from "../ui/controls.ts";
 import { Gutter } from "../ui/gutter.ts";
 import { View } from "../view.ts";
 import { startLoop } from "./stage.ts";
+import { prefs } from "../prefs/store.ts";
 import { resetAim } from "./aim-reset.ts";
+import { Predictor } from "./predictor.ts";
 import type { Gfx, SessionHooks } from "./session-types.ts";
 
 export type { Gfx, SessionHooks };
@@ -44,9 +48,13 @@ export class Session {
   bullet = 1;
   place: [number, number] | null = null;
   call = -1;
+  /** Optional marked pocket for local challenge games. */
+  challengePocket: number | null = null;
   dirty = true;
   prev: Preview | null = null;
   prevAt = 0;
+  prevVersion = 0;
+  predictor = new Predictor();
   remoteAim: { a: Aim; pull: number; place: [number, number] | null } | null = null;
   deadline = 0;
   clockSpan = 30_000;
@@ -56,8 +64,12 @@ export class Session {
   /** Ball paths of the shot in progress or the last one. */
   trails: Map<number, [number, number][]> | null = null;
   /** Last stroke + its pre-state (instant replay). */
-  lastShot: { pre: GameState; cmd: StrikeCmd; cue: CueSpec } | null = null;
-  replay: { sim: Sim; acc: number; heard: number } | null = null;
+  lastShot: { pre: GameState; cmd: StrikeCmd; cue: CueSpec; events: SimEvent[] } | null = null;
+  recording: ShotRecording | null = null;
+  lastRecording: ShotRecording | null = null;
+  replay: HighlightReplay | null = null;
+  onReplay: ((replay: HighlightReplay | null) => void) | null = null;
+  highlightsEnabled = true;
   /** Camera magnification around the cue ball. */
   zoom = 1;
   /** Practice sandbox: object balls can be dragged. */
@@ -147,17 +159,43 @@ export class Session {
   }
 
   startReplay(): void {
-    if (this.lastShot && !this.sim) this.replay = replaySim(this);
+    if (!this.lastRecording || this.sim || this.replay) return;
+    const cb = this.state.balls[0];
+    this.beginReplay("LAST SHOT", 0, Math.max(0, this.lastRecording.duration - 3), this.lastRecording.duration, [cb.x, cb.y]);
+  }
+
+  beginAutoReplay(done: () => void): void {
+    if (!this.lastRecording || this.sim || this.replay) return;
+    const cb = this.state.balls[0], end = this.lastRecording.duration;
+    this.beginReplay("LAST SHOT", 0, end - 0.9, end, [cb.x, cb.y], done);
+  }
+
+  beginHighlight(h: Highlight, done: () => void): void {
+    const p = h.pocket === undefined ? null : this.geo.pockets[h.pocket];
+    const b = this.state.balls.find((b) => b.id === h.ball) ?? this.state.balls[0];
+    const focus: [number, number] = [h.x ?? p?.hx ?? b.x, h.y ?? p?.hy ?? b.y];
+    this.beginReplay(h.label, h.ball, h.t - 0.6, h.t + 0.45, focus, done);
+  }
+
+  private beginReplay(label: string, ball: number, start: number, end: number, focus: [number, number], complete: (() => void) | null = null): void {
+    if (!this.lastRecording || this.replay) return;
+    this.controls.disarm();
+    this.replay = new HighlightReplay(this.lastRecording, label, ball, start, end, focus, complete);
+    this.onReplay?.(this.replay);
   }
 
   play(cmd: StrikeCmd): void {
-    this.replay = null;
+    if (this.sim || this.replay) return;
+    this.predictor.invalidate();
+    this.prev = null;
     this.trails = new Map();
     this.jawHits = [];
     this.shotRails = 0;
     this.shotJaws = 0;
     this.log.push(cmd);
     this.sim = begin(this.state, cmd, this.cues[this.state.turn]);
+    this.recording = this.highlightsEnabled && (prefs.highlightReplay || prefs.instantReplay !== "off") ? new ShotRecording(this.sim.balls) : null;
+    this.recording?.capture(this.sim.t, this.sim.balls, this.orient.m, true);
     this.simCmd = cmd;
     this.acc = 0;
     this.heard = 0;
@@ -167,6 +205,10 @@ export class Session {
   setState(st: GameState): void {
     this.sim = null;
     this.replay = null;
+    this.onReplay?.(null);
+    this.recording = null;
+    this.predictor.invalidate();
+    this.prev = null;
     this.simCmd = null;
     this.jawHits = [];
     // A fresh rack wipes the cloth: the cushions lose their scuffs and the pockets their ledger.
@@ -182,5 +224,7 @@ export class Session {
 
   stop(): void {
     this.running = false;
+    this.onReplay = null;
+    this.predictor.stop();
   }
 }

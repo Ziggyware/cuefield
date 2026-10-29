@@ -1,3 +1,11 @@
 node_modules/
 .cache/
 *.log
+
+# Vite production build
+dist/
+
+# Standalone server database and SQLite journals
+/data/
+*.sqlite
+*.sqlite-*
