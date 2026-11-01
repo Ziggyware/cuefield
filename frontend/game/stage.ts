@@ -25,7 +25,16 @@ export function startLoop(S: Session): void {
     const cb = S.sim?.balls[0] ?? S.state.balls[0];
     const focusBall = replay?.balls.find((b) => b.id === replay.ball && b.on);
     const focus = replay?.phase === "playing" ? (focusBall ? [focusBall.x, focusBall.y] as [number, number] : replay.focus) : S.place ?? [cb.x, cb.y] as [number, number];
-    v.fit(S.spec.L, S.spec.W, w, h, insets(S.top), replay?.phase === "playing" ? 2.2 : S.zoom, focus);
+    
+    // Fit moving balls if in replay playing phase or sim
+    const movingBalls = (S.sim || (replay && replay.phase === "playing")) ? (S.sim ? S.sim.balls : replay.balls) : null;
+    const dynamicZoom = (replay && replay.phase === "playing" && replay.inSlowMotion) ? 2.2 : S.zoom;
+    
+    // Get table spec specific rail and cushion widths
+    const specRail = S.spec.rail[0] || RAIL_BASE; // simplified, could use average or specific axis
+    const specCushion = S.spec.cloth[0] || CUSHION_BASE; // simplified
+    
+    v.fit(S.spec.L, S.spec.W, w, h, insets(S.top), dynamicZoom, focus, movingBalls, specRail, specCushion);
     S.controls.setEnabled(S.canAct());
     const live = !!(S.sim || S.replay);
     const rings = S.assist > 1 && S.state.broken && prefs.ringColor === "spectrum";

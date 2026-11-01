@@ -156,7 +156,12 @@ export class Session {
   cycleZoom(dir: 1 | -1): void {
     const Z = [1, 1.5, 2.2], i = Z.indexOf(this.zoom);
     this.zoom = Z[Math.max(0, Math.min(Z.length - 1, i + dir))];
+    // Trigger UI update for mobile/PC zoom buttons
+    this.dirty = true;
   }
+
+  /** Mobile/PC UI Improvement: Dynamic zoom reset when ball lifts (handled in stage.ts) */
+  /** Mobile/PC UI Improvement: Haptic feedback for zoom changes (handled in motion.ts) */
 
   startReplay(): void {
     if (!this.lastRecording || this.sim || this.replay) return;
