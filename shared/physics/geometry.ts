@@ -15,20 +15,13 @@ const CORNER_FACING = 2.6 * R, SIDE_FACING = 2.0 * R;
  * the drop hole sits beyond the jaw line. `drop` and `hr` are sized from the mouth so that a ball must pass the jaws
  * before it can fall, which is what makes jaw hits reject and rattle.
  */
-function pocket(a: Jaw, b: Jaw, m: { x: number; y: number }, mouthHalf: number, dx: number, dy: number, taper: number, spec: TableSpec): Pocket {
+function pocket(a: Jaw, b: Jaw, m: { x: number; y: number }, mouthHalf: number, dx: number, dy: number, taper: number): Pocket {
   const jx = b.x - a.x, jy = b.y - a.y;
   const half = 0.5 * Math.sqrt(jx * jx + jy * jy);
   const x = (a.x + b.x) / 2, y = (a.y + b.y) / 2;
   const funnel = -((m.x - x) * dx + (m.y - y) * dy);
-  
-  // Physical accuracy: scale drop and hr based on TableSpec coefficients and R
-  const dropBase = 0.6 * half + 0.5 * R;
-  const hrBase = 0.72 * half;
-  
-  // Apply TableSpec cloth/rail coefficients to physical sizing (e.g. eCushion affects depth perception/restitution)
-  const drop = dropBase * (1 + (spec.cloth[0] - 0.1) * 0.5); // minor physical scaling
-  const hr = hrBase * (1 + (spec.rail[0] - 0.1) * 0.5);
-
+  const drop = 0.6 * half + 0.5 * R;
+  const hr = 0.72 * half;
   return {
     x,
     y,
@@ -96,7 +89,7 @@ export function buildGeometry(t: TableSpec): Geometry {
       seg(s, p1x, p1y, j1.x, j1.y, mx, my, k);
       seg(s, p2x, p2y, j2.x, j2.y, mx, my, k);
       posts.push({ x: p1x, y: p1y }, { x: p2x, y: p2y });
-      pockets.push(pocket(j1, j2, { x: mx, y: my }, t.corner / 2, dx, dy, TAN7, t));
+      pockets.push(pocket(j1, j2, { x: mx, y: my }, t.corner / 2, dx, dy, TAN7));
     }
   }
 
@@ -114,7 +107,7 @@ export function buildGeometry(t: TableSpec): Geometry {
       posts.push({ x: px, y: py });
       jaws.push(j);
     }
-    pockets.push(pocket(jaws[0], jaws[1], { x: 0, y: sy * hw }, t.side / 2, 0, sy, TAN14, t));
+    pockets.push(pocket(jaws[0], jaws[1], { x: 0, y: sy * hw }, t.side / 2, 0, sy, TAN14));
   }
 
   return {
