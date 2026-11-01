@@ -30,8 +30,9 @@ export function mount(root: HTMLElement, el: HTMLElement): HTMLElement {
 export function toast(text: string, ms = 1800): void {
   const ui = document.getElementById("ui")!;
   ui.querySelector(".toast")?.remove();
-  const t = h("div", { class: "toast", text });
-  ui.append(t);
+  const t = h("div", { class: "toast", role: "status", "aria-live": "polite", text });
+  // Table notifications share the reserved commentary lane instead of covering the cloth.
+  (ui.querySelector(".table-ui .commentary") ?? ui).append(t);
   setTimeout(() => t.remove(), ms);
 }
 

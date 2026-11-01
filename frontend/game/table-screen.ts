@@ -11,6 +11,7 @@ import { Renderer } from "../render/renderer.ts";
 import { Hud, type HudEvents, type Seat } from "../ui/hud.ts";
 import { setWide, size, virtRect } from "../screen.ts";
 import { RAIL } from "../view.ts";
+import { bottomInset } from "./frame.ts";
 import { bindInput } from "./input.ts";
 import { canVibrate } from "./motion.ts";
 import { Session, type SessionHooks } from "./session.ts";
@@ -57,20 +58,22 @@ export function mountTable(
   seats[0].cue ??= cues[0];
   seats[1].cue ??= cues[1];
   const extra = [
-    { text: "−", fn: () => session.cycleZoom(-1) },
-    { text: "+", fn: () => session.cycleZoom(1) },
-    ...(prefs.instantReplay !== "off" ? [{ text: "↺", fn: () => session.startReplay() }] : []),
+    { text: "−", title: "Zoom out (X)", fn: () => session.cycleZoom(-1) },
+    { text: "+", title: "Zoom in (Z)", fn: () => session.cycleZoom(1) },
+    ...(prefs.instantReplay !== "off" ? [{ text: "↺", title: "Replay last shot (R)", fn: () => session.startReplay() }] : []),
     ...(ev.extra ?? []),
   ];
   const hud = new Hud(seats, stake, { ...ev, extra }, opts.unlocks ?? []);
   const recap = h("div", { class: "round-recap", role: "status", "aria-live": "polite", text: "Rack ready · Make your opening play" });
   /** Cloth whispers: one line of physics or table lore after every settled shot. */
   const whisper = h("div", { class: "whisper", "aria-live": "polite" });
+  const shotIndex = h("span", { class: "shot-number", text: String(state.shot).padStart(2, "0") });
   const commentary = h(
     "div",
     { class: "commentary" },
-    h("div", { style: "display:flex;flex-direction:column;gap:3px;min-width:0" }, recap, whisper),
-    narrationButton(),
+    h("div", { class: "shot-counter", "aria-label": "Shots played" }, h("span", { text: "SHOT" }), shotIndex),
+    h("div", { class: "commentary-copy" }, recap, whisper),
+    h("div", { class: "table-utilities" }, hud.actions, narrationButton()),
   );
   /** Nerves: the heartbeat vignette over the whole table. */
   const nerves = h("div", { class: "nerves" });
@@ -91,7 +94,7 @@ export function mountTable(
     if (replayTitle.textContent !== r.label) replayTitle.textContent = r.label;
     if (replayNote.textContent !== note) replayNote.textContent = note;
   };
-  const root = h("div", { style: "position:absolute;inset:0;pointer-events:none" }, nerves, hud.root, session.controls.root, session.gutter.root, commentary, shield);
+  const root = h("div", { class: "table-ui", style: "position:absolute;inset:0;pointer-events:none" }, nerves, hud.root, session.controls.root, session.gutter.root, commentary, shield);
   ui.replaceChildren(root);
   // The gutter measures its label from layout, so re-slot after the first paint.
   requestAnimationFrame(() => session.gutter.layout());
@@ -104,6 +107,7 @@ export function mountTable(
     const st = session.state;
     if (st.shot !== seenShot) {
       seenShot = st.shot;
+      shotIndex.textContent = String(st.shot).padStart(2, "0");
       const summary = roundText(st, seats.map((s) => s.name));
       recap.textContent = summary;
       recap.getAnimations().forEach((a) => a.cancel());
@@ -133,8 +137,12 @@ export function mountTable(
     }
     if (st.winner >= 0 && !ended && seats[1].name !== "") g.audio.finale(hooks.isLocal(st.winner as 0 | 1));
     ended = st.winner >= 0;
-    const r = virtRect(hud.root), top = r.y + r.h + 4;
-    const avail = size().h - top - 48;
+    const compact = size().h < 520;
+    const r = virtRect(hud.root), top = Math.max(compact ? 60 : 68, r.y + r.h) + 8;
+    // A long recap or lore line grows the reserved shelf, never over the cloth.
+    const footer = virtRect(commentary);
+    session.bottom = Math.max(bottomInset(), size().h - footer.y + 6);
+    const avail = Math.max(40, size().h - top - session.bottom);
     if (top !== session.top || avail !== lastAvail) {
       session.top = top;
       lastAvail = avail;
@@ -145,8 +153,8 @@ export function mountTable(
     // root so the commentary strip can keep to the clear centre.
     const v = session.view, w = size().w;
     const halfW = (session.spec.L / 2 + RAIL) * v.s;
-    const tl = Math.round(Math.max(84, Math.min(w - 84, v.cx - halfW)));
-    const tr = Math.round(Math.max(84, Math.min(w - 84, v.cx + halfW)));
+    const tl = Math.round(Math.max(0, Math.min(w, v.cx - halfW)));
+    const tr = Math.round(Math.max(0, Math.min(w, v.cx + halfW)));
     if (tl !== lastTl || tr !== lastTr) {
       lastTl = tl;
       lastTr = tr;

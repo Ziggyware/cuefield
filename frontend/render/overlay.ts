@@ -3,7 +3,7 @@ import type { Ball, Geometry } from "../../shared/physics/types.ts";
 import type { Preview } from "../aim.ts";
 import { paletteHex } from "../prefs/look.ts";
 import { prefs } from "../prefs/store.ts";
-import type { View } from "../view.ts";
+import { RAIL, type View } from "../view.ts";
 import { chevrons, cone, dotted, ghostBalls, heatLedger, poly, railMarks as scuffs, trails, withAlpha } from "./aids.ts";
 import { banks, kitchen, labels, pots, rings } from "./aids-table.ts";
 import { drawStick, type Stick } from "./stick.ts";
@@ -53,6 +53,20 @@ export class Overlay {
     g.setTransform(v.dpr, 0, 0, v.dpr, 0, 0);
     g.clearRect(0, 0, v.w, v.h);
 
+    // Aids live on the cloth, below the balls. Excluding each visible ball silhouette
+    // prevents pocket/trajectory rings from painting across neighboring balls.
+    g.save();
+    g.beginPath();
+    g.rect(0, 0, v.w, v.h);
+    for (const b of f.balls) {
+      if (!b.on) continue;
+      const [x, y] = v.toScreen(b.x, b.y);
+      const r = Math.max(0.5, rp * (1 + Math.max(0, b.z) * 2.6) - 1.5);
+      g.moveTo(x + r, y);
+      g.arc(x, y, r, 0, Math.PI * 2);
+    }
+    g.clip("evenodd");
+
     if (f.railMarks.length && prefs.railMarks) scuffs(g, v, f.railMarks, performance.now());
     if (f.trails && prefs.trails) trails(g, v, f.trails, f.moving ? 0.6 : 0.35);
     if (f.heat && prefs.pocketHeat) heatLedger(g, v, geo.pockets, f.heat, A);
@@ -62,9 +76,9 @@ export class Overlay {
     if (f.pockets) {
       const { called, pulse } = f.pockets;
       geo.pockets.forEach((p, i) => {
-        const [x, y] = v.toScreen(p.x, p.y);
+        const [x, y] = v.toScreen(p.hx, p.hy);
         g.beginPath();
-        g.arc(x, y, p.mouthHalf * v.s * (i === called ? 1.35 : 1.1 + 0.1 * pulse), 0, Math.PI * 2);
+        g.arc(x, y, p.hr * v.s * (i === called ? 1.15 : 1.05 + 0.05 * pulse), 0, Math.PI * 2);
         g.strokeStyle = i === called ? A : withAlpha(A, 0.45);
         g.lineWidth = i === called ? 2.5 : 1;
         g.stroke();
@@ -73,7 +87,7 @@ export class Overlay {
     if (f.challengePocket !== null) {
       const p = geo.pockets[f.challengePocket];
       if (p) {
-        const [x, y] = v.toScreen(p.x, p.y);
+        const [x, y] = v.toScreen(p.hx, p.hy);
         g.beginPath();
         g.arc(x, y, p.mouthHalf * v.s * 1.6 + 4, 0, Math.PI * 2);
         g.strokeStyle = A; g.lineWidth = 2.5; g.setLineDash([5, 3]); g.stroke(); g.setLineDash([]);
@@ -90,7 +104,7 @@ export class Overlay {
       g.lineCap = "round";
       g.lineJoin = "round";
       for (const t of p.paths) {
-        g.globalAlpha = GUIDE_ALPHA * (t.id === 0 ? 0.16 : 0.1);
+        g.globalAlpha = GUIDE_ALPHA * (t.id === 0 ? 0.055 : 0.025);
         poly(g, v, t.pts, t.id === 0 ? "#ffffff" : pal[t.id], 2 * rp);
       }
       g.globalAlpha = GUIDE_ALPHA;
@@ -98,6 +112,7 @@ export class Overlay {
       const style = prefs.previewStyle;
       for (const t of p.paths) {
         const color = t.id === 0 ? "#ffffff" : t.id === p.target ? A : pal[t.id];
+        g.globalAlpha = GUIDE_ALPHA * (t.id === 0 ? .8 : t.id === p.target ? .85 : .35);
         if (style === "line") this.path(v, t.pts, color, t.id === 0 ? 1.4 : 1.6, t.id === 0 ? [] : [6, 4]);
         else if (style === "dots") dotted(g, v, t.pts, color);
         else if (style === "chevron") chevrons(g, v, t.pts, color);
@@ -140,8 +155,19 @@ export class Overlay {
       g.stroke();
       g.setLineDash([]);
     }
+    g.restore();
     if (prefs.ballLabels) labels(g, v, f.balls);
-    if (f.stick) drawStick(g, v, f.stick);
+    if (f.stick) {
+      // The cue can extend into the room, but never draw beneath a stroke instrument.
+      const left = Math.max(0, v.cx - (L / 2 + RAIL) * v.s - 8);
+      const right = Math.min(v.w, v.cx + (L / 2 + RAIL) * v.s + 8);
+      g.save();
+      g.beginPath();
+      g.rect(left, 0, Math.max(0, right - left), v.h);
+      g.clip();
+      drawStick(g, v, f.stick);
+      g.restore();
+    }
   }
 
   /** Expanding ring where a ball struck a pocket jaw and was spat back out. */

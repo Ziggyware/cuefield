@@ -20,6 +20,7 @@ export function bindInput(S: Session, el: HTMLElement): () => void {
   const world = (e: PointerEvent) => S.view.toWorld(...toVirt(e.clientX, e.clientY));
   const cue = () => S.place ?? [S.state.balls[0].x, S.state.balls[0].y];
   const changed = () => {
+    S.controls.paint();
     S.dirty = true;
     S.hooks.aim?.(S.aim, S.controls.pull, S.place);
   };

@@ -12,7 +12,7 @@ import { prefs } from "../prefs/store.ts";
 import { TABLE_FS } from "./shaders-table.ts";
 import { BALL_FS, BALL_VS, SHADOW_FS } from "./shaders-ball.ts";
 
-const LAMP_H = 1.0;
+const LAMP_H = 1.15;
 const CONTRAST = 1.08;
 const STRIDE = 16;
 
@@ -31,7 +31,7 @@ export class Renderer {
   cache: TableCache;
 
   constructor(canvas: HTMLCanvasElement) {
-    const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, premultipliedAlpha: false });
+    const gl = canvas.getContext("webgl2", { antialias: true, alpha: false, premultipliedAlpha: false });
     if (!gl) throw new Error("webgl2");
     this.gl = gl;
     this.table = program(gl, QUAD_VS, TABLE_FS);
@@ -112,7 +112,7 @@ export class Renderer {
       gl.uniform1f(p.u("uR"), R);
       gl.uniform1f(p.u("uScale"), scale);
       gl.uniform1f(p.u("uPx"), px);
-      gl.uniform1f(p.u("uLift"), scale > 1 ? 0 : 1);
+      gl.uniform1f(p.u("uLift"), p === this.shadow ? 0 : 1);
       this.lamps(p);
       for (let i = 0; i < 8; i++) gl.disableVertexAttribArray(i);
       attrib(gl, p.a("aQ"), this.quad, 2, 2, 0, 0);
@@ -126,7 +126,7 @@ export class Renderer {
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, n);
 
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    bind(this.ball, 1.0);
+    bind(this.ball, 1.08);
     gl.uniform3fv(this.ball.u("uCloth"), cloth);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.atlas);

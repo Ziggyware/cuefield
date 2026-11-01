@@ -33,7 +33,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 export class Controls {
   root: HTMLElement;
   power = h("div", { class: "power", title: "pull for power · starts where you press" }, h("i"), h("b", { class: "origin" }), h("span", { class: "pct" }));
-  fine = h("div", { class: "fine", title: "fine aim · drag for angle" }, h("i"));
+  fine = h("div", { class: "fine", title: "fine aim · drag for angle" }, h("i"), h("span", { class: "fine-value", text: "0.0°" }));
   spin = h("div", { class: "spin", title: "tip offset · double-tap to centre" }, h("b"), h("i"), h("u", { class: "range" }));
   elev = h("div", { class: "elev", title: "cue elevation / massé" }, h("i"), h("span", { class: "v" }));
 
@@ -45,8 +45,8 @@ export class Controls {
   readElev = h("span", { class: "cue-val" });
 
   /** The two full-height input bands; the whole band is the hit area. */
-  powerDock = h("div", { class: "ctl dock power-dock" }, h("span", { class: "zone-cap", text: "POWER" }), this.power);
-  fineDock = h("div", { class: "ctl dock fine-dock" }, h("span", { class: "zone-cap", text: "PRECISION" }), this.fine);
+  powerDock = h("div", { class: "ctl dock power-dock" }, h("span", { class: "zone-cap", text: "POWER" }), this.power, h("span", { class: "zone-help", text: "PULL & RELEASE" }));
+  fineDock = h("div", { class: "ctl dock fine-dock" }, h("span", { class: "zone-cap", text: "PRECISION" }), this.fine, h("span", { class: "zone-help", text: "DRAG TO REFINE" }));
 
   pull = 0;
   /** Bar fraction where the current drag started, and which way the fill grows. */
@@ -151,6 +151,7 @@ export class Controls {
         finePos = clamp(finePos + (y - last) * 0.5, 4, 96);
       }
       this.fine.firstElementChild!.setAttribute("style", `top:${finePos}%`);
+      this.paint();
       last = y;
       ev.change();
     });
@@ -322,6 +323,7 @@ export class Controls {
   }
 
   paint(): void {
+    this.powerDock.classList.toggle("is-pulling", this.pull > 0);
     const fill = this.power.firstElementChild as HTMLElement;
     const origin = this.power.children[1] as HTMLElement;
     if (!this.pull) {
@@ -336,7 +338,9 @@ export class Controls {
     }
     origin.style.top = `${this.originFrac * 100}%`;
     origin.style.opacity = this.pull ? "1" : "0";
-    (this.power.lastElementChild as HTMLElement).textContent = this.pull ? `${Math.round(this.pull * 100)}` : "";
+    (this.power.lastElementChild as HTMLElement).textContent = this.pull ? `${Math.round(this.pull * 100)}%` : "0%";
+    const degrees = (this.aim.angle * 180 / Math.PI % 360 + 360) % 360;
+    (this.fine.lastElementChild as HTMLElement).textContent = `${(Math.round(degrees * 10) / 10 % 360).toFixed(1)}°`;
 
     const dot = this.spin.children[1] as HTMLElement;
     dot.style.left = `calc(50% + ${this.aim.tx * 40}%)`;

@@ -82,9 +82,9 @@ export function rings(g: G, v: View, pts: [number, number][], rp: number): void 
   const hex = ring.hex || `hsl(${(performance.now() / 8) % 360},100%,60%)`;
   for (const [tx, ty] of pts) {
     const [x, y] = v.toScreen(tx, ty);
-    for (const [w, c] of [[4, "rgba(0,0,0,.55)"], [2, hex]] as const) {
+    for (const [w, c] of [[3, "rgba(0,0,0,.55)"], [1.5, hex]] as const) {
       g.beginPath();
-      g.arc(x, y, rp * 1.4, 0, Math.PI * 2);
+      g.arc(x, y, Math.max(1, rp - 0.75), 0, Math.PI * 2);
       g.strokeStyle = c;
       g.lineWidth = w;
       g.stroke();
@@ -95,11 +95,11 @@ export function rings(g: G, v: View, pts: [number, number][], rp: number): void 
 /** Pockets the guide predicts a ball will drop into. */
 export function pots(g: G, v: View, geo: Geometry, ks: number[], color: string): void {
   for (const k of ks) {
-    const h = geo.pockets[k], [x, y] = v.toScreen(h.x, h.y);
+    const h = geo.pockets[k], [x, y] = v.toScreen(h.hx, h.hy);
     g.beginPath();
-    g.arc(x, y, h.mouthHalf * v.s * 1.2, 0, Math.PI * 2);
+    g.arc(x, y, h.hr * v.s * 1.12, 0, Math.PI * 2);
     g.strokeStyle = color;
-    g.lineWidth = 3;
+    g.lineWidth = 1.5;
     g.stroke();
   }
 }

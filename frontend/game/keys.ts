@@ -15,7 +15,8 @@ export function bindKeys(S: Session, changed: () => void): () => void {
     e.stopImmediatePropagation();
   };
   const key = (e: KeyboardEvent) => {
-    if ((e.target as HTMLElement).tagName === "INPUT") return;
+    // Toolbar and rules interactions must not also charge or turn the cue.
+    if ((e.target as HTMLElement).closest("input, textarea, select, button, [role=button], [contenteditable=true]")) return;
     if (e.key === "z" || e.key === "x") return S.cycleZoom(e.key === "z" ? 1 : -1);
     if (e.key === "r") return S.startReplay();
     if (e.key === "Escape") return S.controls.disarm();

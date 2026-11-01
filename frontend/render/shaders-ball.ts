@@ -43,9 +43,17 @@ void main(){
     float E=inversesqrt(r2)/r2/uE0;
     col+=(alb*(1.-F)*nl+vec3(D*F*Gs/(4.*nv+1e-4)))*E;
   }
-  col+=alb*(.06+.22*lin(uCloth)*(1.-n.z));
+  // Broad overhead softbox reflections give polished phenolic resin a readable shape.
+  vec3 reflected=reflect(vec3(0,0,-1),n);
+  for(int i=0;i<2;i++){
+    vec3 lampDir=normalize(uLamp[i]-P);
+    vec2 q=reflected.xy/max(reflected.z,.08)-lampDir.xy/max(lampDir.z,.08);
+    float softbox=1.-smoothstep(.0,.08,max(abs(q.x)-.16,abs(q.y)-.055));
+    col+=vec3(.11,.115,.10)*softbox*smoothstep(0.,.25,reflected.z);
+  }
+  col+=alb*(.045+.18*lin(uCloth)*(1.-n.z));
   float rz=2.*n.z*n.z-1.;float Fr=F0+(1.-F0)*pow(max(1.-n.z,1e-5),5.);
-  col+=Fr*lin(uCloth)*.85*smoothstep(0.,-.35,rz);
+  col+=Fr*lin(uCloth)*.85*(1.-smoothstep(-.35,0.,rz));
   o=vec4(srgb(grade(col)),al);
 }`;
 
