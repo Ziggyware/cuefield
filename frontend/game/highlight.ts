@@ -5,7 +5,10 @@ const SAMPLE_SECONDS = 1 / 30;
 const MAX_FRAMES = Math.ceil(MAX_SIM_TIME / SAMPLE_SECONDS) + 4;
 const ORIENT_SIZE = 16 * 9;
 export const REPLAY_BUFFER_SECONDS = 2;
-export const REPLAY_SPEED = 0.4;
+// Base speed is 1.0 (regular). Slow-motion (1/4 speed) is applied dynamically when ball lifts.
+export const REPLAY_SPEED_REGULAR = 1.0;
+export const REPLAY_SPEED_SLOW = 0.25;
+export const SLOW_MOTION_DURATION = 5.0; // seconds
 
 /** Bounded, render-only frames. The authoritative physics state is never rewound or mutated. */
 export class ShotRecording {
@@ -73,6 +76,10 @@ export class HighlightReplay {
   balls: Ball[];
   orientation = new Float32Array(ORIENT_SIZE);
   focus: [number, number];
+  // Track slow motion state
+  slowMotionStart = 0;
+  inSlowMotion = false;
+
   constructor(
     public recording: ShotRecording,
     public label: string,
@@ -95,12 +102,47 @@ export class HighlightReplay {
     let left = Math.max(0, dt);
     for (let i = 0; i < 3 && left > 0; i++) {
       if (this.phase === "playing") {
-        const remaining = (this.end - this.cursor) / REPLAY_SPEED;
+        // Check if ball lifts (z > 0.02) to trigger slow motion
+        const liftBall = this.balls.find(b => b.id === this.ball && b.z > 0.02);
+        const isLifting = !!liftBall;
+        
+        // Start slow motion at beginning of stroke or when lift starts
+        if (isLifting && !this.inSlowMotion) {
+          this.inSlowMotion = true;
+          this.slowMotionStart = this.cursor;
+        }
+
+        // Determine current speed
+        let currentSpeed = REPLAY_SPEED_REGULAR;
+        if (this.inSlowMotion) {
+          const elapsedSlow = this.cursor - this.slowMotionStart;
+          // Slow motion for 5 seconds OR until ball is pocketed (on === false)
+          if (elapsedSlow < SLOW_MOTION_DURATION && liftBall?.on !== false) {
+            currentSpeed = REPLAY_SPEED_SLOW;
+          } else {
+            // Exit slow motion
+            this.inSlowMotion = false;
+            currentSpeed = REPLAY_SPEED_REGULAR;
+          }
+        }
+
+        const remaining = (this.end - this.cursor) / currentSpeed;
         const used = Math.min(left, remaining);
-        this.cursor = Math.min(this.end, this.cursor + used * REPLAY_SPEED);
+        this.cursor = Math.min(this.end, this.cursor + used * currentSpeed);
         left -= used;
         this.recording.read(this.cursor, this.balls, this.orientation);
-        if (remaining <= used + 1e-9) { this.phase = "after"; this.elapsed = 0; }
+        
+        // Check if pocketed during this step
+        if (liftBall && !liftBall.on) {
+          this.phase = "after";
+          this.elapsed = 0;
+          break;
+        }
+
+        if (remaining <= used + 1e-9) { 
+          this.phase = "after"; 
+          this.elapsed = 0; 
+        }
         else break;
       } else {
         const used = Math.min(left, REPLAY_BUFFER_SECONDS - this.elapsed);
@@ -108,7 +150,10 @@ export class HighlightReplay {
         left -= used;
         if (this.elapsed + 1e-9 < REPLAY_BUFFER_SECONDS) break;
         if (this.phase === "after") return true;
-        this.phase = "playing"; this.elapsed = 0;
+        this.phase = "playing"; 
+        this.elapsed = 0;
+        // Reset slow motion state for next play
+        this.inSlowMotion = false;
       }
     }
     return false;
