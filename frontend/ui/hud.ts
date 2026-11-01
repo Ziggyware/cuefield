@@ -18,7 +18,7 @@ export interface Seat {
 export interface HudEvents extends SayEvents {
   concede(): void;
   /** Extra table buttons (replay, rewind), shown in order. */
-  extra?: { text: string; fn: () => void }[];
+  extra?: { text: string; title?: string; fn: () => void }[];
   /** Spectators and replays have nobody to talk to. */
   noSay?: boolean;
 }
@@ -36,6 +36,7 @@ export class Hud {
   private ups: HTMLElement[];
   bubbles: (HTMLElement | null)[] = [null, null];
   mid: HTMLElement;
+  actions: HTMLElement;
   info: HTMLElement;
   emotes: HTMLElement | null = null;
   card: HTMLElement | null = null;
@@ -55,40 +56,47 @@ export class Hud {
       h(
         "div",
         { class: i ? "pc seat-b" : "pc" },
-        h("div", { class: "row" }, h("span", { text: s.name, title: s.name }), s.rating ? h("span", { class: "k", text: s.rating }) : null),
+        h("div", { class: "seat-label" }, h("span", { class: "seat-state", text: `PLAYER 0${i + 1}` }), h("span", { class: "seat-number", text: `0${i + 1}` })),
+        h("div", { class: "row player-name" }, h("span", { text: s.name, title: s.name }), s.rating ? h("span", { class: "k", text: s.rating }) : null),
         this.balls[i],
         this.ups[i],
         this.clocks[i],
       )
     );
-    this.info = h("span", { class: "k info", title: "tap for the venue rules" });
+    this.info = h("span", { class: "k info", role: "button", tabindex: "0", "aria-label": "Table status and venue rules", title: "tap for the venue rules" });
     this.info.onclick = () => {
       if (this.card) return void (this.card.remove(), (this.card = null));
       if (!this.st) return;
       this.card = h("ul", { class: "rulescard" }, ...rulesList(rulesOf(this.st.table), this.st.mode).map((t) => h("li", { text: t })));
       this.mid.append(this.card);
     };
+    this.info.onkeydown = (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); this.info.click(); }
+    };
     this.net = h("span", { class: "k net" });
     this.stake = h("span", { class: "v", text: stake });
     const emo = h("button", {
-      text: "say",
+      text: "Chat",
+      title: "Table chat",
       onclick: () => {
         if (this.emotes) return this.closeSay();
         this.emotes = sayPanel(unlocks, ev, () => this.closeSay());
         this.mid.append(this.emotes);
       },
     });
-    const quit = h("button", { text: "quit", onclick: () => ev.concede() });
+    const quit = h("button", { class: "leave-table", text: "Leave", title: "Leave this table", onclick: () => ev.concede() });
+    this.actions = h("nav", { class: "table-actions", "aria-label": "Table actions" },
+      ... (ev.extra ?? []).map((x) => h("button", { text: x.text, title: x.title ?? x.text, "aria-label": x.title ?? x.text, onclick: x.fn })),
+      ev.noSay ? null : emo, quit);
     this.mid = h(
       "div",
       { class: "mid" },
       h("div", { class: "row" }, this.stake, this.net),
       this.info,
-      h("div", { class: "row" }, ...(ev.extra ?? []).map((x) => h("button", { text: x.text, onclick: x.fn })), ev.noSay ? null : emo, quit),
     );
     this.chalk = h("div", { class: "dock chalk-dock", title: "chalk selections" });
     this.cue = h("div", { class: "dock cue-dock", title: "spin and massé" });
-    // Cards pin into the top corners; chalk, status and cue controls share the freed centre.
+    // Equipment and match status sit between two inset player cards. Utilities live in the footer.
     this.root = h(
       "div",
       { class: "hud" },
@@ -104,6 +112,7 @@ export class Hud {
     for (const i of [0, 1] as const) {
       const on = active && st.turn === i && st.winner < 0;
       this.cards[i].classList.toggle("turn", on);
+      this.cards[i].querySelector(".seat-state")!.textContent = on ? "AT THE TABLE" : `PLAYER 0${i + 1}`;
       this.clocks[i].style.width = on ? `${Math.max(0, Math.min(1, clockFrac)) * 100}%` : "0";
       this.clocks[i].style.background = clockFrac < 0.25 ? "var(--bad)" : "var(--fg)";
       const ids = ownBalls(st, i);

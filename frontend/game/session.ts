@@ -60,7 +60,9 @@ export class Session {
   clockSpan = 30_000;
   running = true;
   /** Bottom edge of the HUD, virtual px. */
-  top = 48;
+  top = 76;
+  /** Reserved message shelf, measured by the table screen when text wraps. */
+  bottom = 84;
   /** Ball paths of the shot in progress or the last one. */
   trails: Map<number, [number, number][]> | null = null;
   /** Last stroke + its pre-state (instant replay). */

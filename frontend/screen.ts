@@ -27,6 +27,7 @@ export function virtRect(el: HTMLElement): { x: number; y: number; w: number; h:
 
 function sync() {
   document.body.classList.toggle("port", innerHeight > innerWidth);
+  document.body.classList.toggle("compact-table", wide && size().h < 520);
   document.documentElement.style.setProperty("--vh", `${size().h / 100}px`);
 }
 

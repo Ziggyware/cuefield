@@ -1,9 +1,11 @@
+import type { Ball } from "../shared/physics/types.ts";
+
 /** Adaptive resolution factor, lowered when frames run long (see stage). */
 export const quality = { scale: 1 };
 
 /** Wood + cushion width beyond the playing surface, m. Derived from TableSpec. */
-export const RAIL_BASE = 0.11;
-export const CUSHION_BASE = 0.042;
+export const RAIL = 0.11;
+export const CUSHION = 0.042;
 
 /** World (m, origin at table centre, +y up) → virtual landscape px. */
 export class View {
@@ -19,9 +21,9 @@ export class View {
   fy = 0;
 
   /**
-   * Fits the table into the space between the HUD and the stroke controls. The side rails may pass under the
-   * controls (only cloth and cushions must stay clear), which makes the table larger. zoom > 1 magnifies around
-   * focus, clamped so the view never leaves the table.
+   * Fits the whole table, including wood, between the HUD, footer, and stroke controls.
+   * zoom > 1 magnifies around the focus; moving-ball framing can reduce magnification
+   * but never multiplies the base pixels-per-metre scale a second time.
    */
   fit(
     L: number,
@@ -32,13 +34,16 @@ export class View {
     zoom = 1,
     focus: [number, number] = [0, 0],
     fitMovingBalls: Ball[] | null = null,
-    railWidth: number = RAIL_BASE,
-    cushionWidth: number = CUSHION_BASE,
+    railWidth: number = RAIL,
+    cushionWidth: number = CUSHION,
   ): void {
     this.w = w;
     this.h = h;
-    this.dpr = Math.max(0.5, Math.min(globalThis.devicePixelRatio || 1, 2.5) * quality.scale);
+    this.dpr = Math.max(1, Math.min(globalThis.devicePixelRatio || 1, 3) * quality.scale);
     
+    const aw = Math.max(1, w - insets.left - insets.right);
+    const ah = Math.max(1, h - insets.top - insets.bottom);
+    const baseScale = Math.min(aw / (L + 2 * railWidth), ah / (W + 2 * railWidth));
     let effectiveZoom = zoom;
     if (fitMovingBalls) {
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -54,16 +59,14 @@ export class View {
         const pad = 0.1;
         const reqW = (maxX - minX) + 2 * pad;
         const reqH = (maxY - minY) + 2 * pad;
-        const aw = w - insets.left - insets.right, ah = h - insets.top - insets.bottom;
         const sW = aw / (reqW + 2 * cushionWidth + 0.03);
         const sH = ah / (reqH + 2 * railWidth);
-        effectiveZoom = Math.min(sW, sH) * zoom;
+        effectiveZoom = Math.max(1, Math.min(zoom, Math.min(sW, sH) / baseScale));
         focus = [(minX + maxX) / 2, (minY + maxY) / 2];
       }
     }
 
-    const aw = w - insets.left - insets.right, ah = h - insets.top - insets.bottom;
-    this.s = Math.min(aw / (L + 2 * cushionWidth + 0.03), ah / (W + 2 * railWidth)) * effectiveZoom;
+    this.s = baseScale * effectiveZoom;
     
     const hx = Math.max(0, L / 2 + railWidth - aw / (2 * this.s)), hy = Math.max(0, W / 2 + railWidth - ah / (2 * this.s));
     const tx = effectiveZoom > 1 ? Math.max(-hx, Math.min(hx, focus[0])) : 0, ty = effectiveZoom > 1 ? Math.max(-hy, Math.min(hy, focus[1])) : 0;

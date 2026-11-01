@@ -38,10 +38,10 @@
   gap: 1rem;
 }
 .main > *,
-.dock > * {
+.app .dock > * {
   flex-shrink: 0;
 }
-.dock {
+.app .dock {
   grid-area: dock;
   border-top: 1px solid var(--line);
   padding: 12px 14px;
@@ -177,7 +177,7 @@
     grid-template-rows: auto minmax(0,1fr) auto;
     grid-template-areas: "top top" "main dock" "nav nav";
   }
-  .dock {
+  .app .dock {
     border-top: none;
     border-left: 1px solid var(--line);
     overflow: auto;

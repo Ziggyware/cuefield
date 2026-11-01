@@ -46,7 +46,7 @@ export class Gutter {
 
   /** Centre of the first slot: 8 px gutter padding, the label, its 4 px gap, then half a ball. */
   private get origin(): number {
-    return 8 + (this.label.offsetWidth || 52) + 4 + this.gs / 2;
+    return (this.slots.offsetLeft || 8 + (this.label.offsetWidth || 52) + 4) + this.gs / 2;
   }
 
   private slotX(i: number): number {

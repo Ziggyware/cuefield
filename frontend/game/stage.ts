@@ -30,11 +30,8 @@ export function startLoop(S: Session): void {
     const movingBalls = (S.sim || (replay && replay.phase === "playing")) ? (S.sim ? S.sim.balls : replay.balls) : null;
     const dynamicZoom = (replay && replay.phase === "playing" && replay.inSlowMotion) ? 2.2 : S.zoom;
     
-    // Get table spec specific rail and cushion widths
-    const specRail = S.spec.rail[0] || RAIL_BASE; // simplified, could use average or specific axis
-    const specCushion = S.spec.cloth[0] || CUSHION_BASE; // simplified
-    
-    v.fit(S.spec.L, S.spec.W, w, h, insets(S.top), dynamicZoom, focus, movingBalls, specRail, specCushion);
+    // Rail and cushion dimensions are world metres, never the spec's RGB material colors.
+    v.fit(S.spec.L, S.spec.W, w, h, insets(S.top, S.bottom), dynamicZoom, focus, movingBalls);
     S.controls.setEnabled(S.canAct());
     const live = !!(S.sim || S.replay);
     const rings = S.assist > 1 && S.state.broken && prefs.ringColor === "spectrum";

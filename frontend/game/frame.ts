@@ -1,4 +1,5 @@
 import { onPref, prefs } from "../prefs/store.ts";
+import { size } from "../screen.ts";
 import { quality } from "../view.ts";
 import type { Session } from "./session.ts";
 
@@ -7,12 +8,13 @@ import type { Session } from "./session.ts";
  * precision band the strip from the right table edge to the right screen edge. The gutter takes the bottom strip.
  * Left-handed play mirrors the bands.
  */
-export const POWER_GUTTER = 160, FINE_GUTTER = 126, GUTTER_H = 44;
-export const insets = (top: number) => ({
-  top,
-  bottom: GUTTER_H,
-  left: prefs.leftHanded ? FINE_GUTTER : POWER_GUTTER,
-  right: prefs.leftHanded ? POWER_GUTTER : FINE_GUTTER,
+export const POWER_GUTTER = 112, FINE_GUTTER = 112, GUTTER_H = 84;
+export const bottomInset = () => size().h < 520 ? 68 : GUTTER_H;
+export const insets = (top: number, bottom = bottomInset()) => ({
+  top: Math.max(size().h < 520 ? 68 : 80, top),
+  bottom,
+  left: Math.max(64, Math.min(prefs.leftHanded ? FINE_GUTTER : POWER_GUTTER, size().w * .08)),
+  right: Math.max(64, Math.min(prefs.leftHanded ? POWER_GUTTER : FINE_GUTTER, size().w * .08)),
 });
 
 let prefsVersion = 0;
